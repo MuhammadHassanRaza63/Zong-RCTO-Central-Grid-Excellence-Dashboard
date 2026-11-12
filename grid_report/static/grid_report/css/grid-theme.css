@@ -1,0 +1,111 @@
+/* ==========================================================================
+   Grid Excellence - RCTO Central look.
+   Loaded AFTER the page's own styles. It re-points the Grid design tokens to the RCTO Central
+   (Zong dark/light glass) tokens, so every Grid component picks up the RCTO palette, font and shapes.
+   Theme is controlled by <html data-theme="dark|light"> from site/js/theme.js (same switch as the RCTO pages).
+   ========================================================================== */
+:root {
+  --lime: #B4F03C; --lime-2: #7ED321; --emerald: #12B26A; --on-lime: #07200F;
+  --m-complaints: #F0147F; --m-cuts: #FF9A1F; --m-avail: #14B870; --m-ls: #7B61FF;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --font: Calibri, Carlito, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: var(--font);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #03100A; --canvas-art: var(--art-page-dark);
+  --orb-a: rgba(180, 240, 60, .16); --orb-b: rgba(18, 178, 106, .20);
+  --ink: #EAF3EC; --ink-2: #C2D3C7; --accent-text: #B4F03C;
+  --card: rgba(8, 25, 16, .55); --nav-bg: rgba(3, 16, 10, .45);
+  --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .2); --chip-hover: rgba(180, 240, 60, .14);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 18px 40px -22px rgba(0, 0, 0, .8);
+  --shadow-lg: 0 2px 4px rgba(0, 0, 0, .5), 0 40px 80px -36px rgba(0, 0, 0, .9);
+  /* Grid tokens */
+  --bg: #03100A; --surface: #0B2016; --surface2: #11291C; --line: rgba(180, 240, 60, .16);
+  --fg: #EAF3EC; --muted: #8FA999; --faint: #6C8777;
+  --accent: #B4F03C; --accent-2: #12B26A;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #EAF4E1;
+  --canvas-art: radial-gradient(60% 46% at 88% 4%, rgba(180, 240, 60, .55), transparent 72%), radial-gradient(46% 44% at 4% 38%, rgba(18, 178, 106, .26), transparent 72%),
+    radial-gradient(44% 40% at 72% 92%, rgba(123, 97, 255, .14), transparent 72%), linear-gradient(180deg, #F5FAEF, #E1F0D5);
+  --orb-a: rgba(180, 240, 60, .55); --orb-b: rgba(18, 178, 106, .32);
+  --ink: #0A1A10; --ink-2: #2D4535; --accent-text: #2F7D0E;
+  --card: rgba(255, 255, 255, .62); --nav-bg: rgba(245, 250, 239, .6);
+  --chip: rgba(255, 255, 255, .6); --chip-line: rgba(20, 70, 30, .18); --chip-hover: rgba(180, 240, 60, .35);
+  --shadow: 0 1px 2px rgba(20, 70, 30, .08), 0 18px 40px -24px rgba(20, 80, 30, .35);
+  --shadow-lg: 0 2px 4px rgba(20, 70, 30, .08), 0 40px 80px -36px rgba(20, 80, 30, .45);
+  --bg: #EAF4E1; --surface: #FAFDF6; --surface2: #EFF7E7; --line: rgba(20, 70, 30, .14);
+  --fg: #0A1A10; --muted: #587063; --faint: #7F9488;
+  --accent: #2F7D0E; --accent-2: #12B26A;
+}
+:root[data-theme] {
+  /* score-band colours: identical to the original Grid report (Grid ranking, bands, chips) */
+  --band-95: #0ca30c; --band-90: #3987e5; --band-80: #fab219; --band-0: #d03b3b;
+  --s1: #2F6BFF; --s2: #FF9A1F; --s3: #14B870; --s4: #FFB020; --s5: #F0558A; --s6: #7B61FF;
+  --good: #14B870; --warn: #FFB020; --serious: #FF9A1F; --crit: #E5484D;
+}
+
+/* ---------------------------------------------------------------- page canvas (same layered art + drifting orbs as RCTO) */
+html { background: var(--canvas); }
+body { background: transparent !important; background-image: none !important; color: var(--fg); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0; height: auto; z-index: -10; background: var(--canvas-art) center / cover no-repeat, var(--canvas); }
+body::after { content: ""; position: fixed; inset: 0; z-index: -9; pointer-events: none;
+  background: radial-gradient(closest-side at 18% 30%, var(--orb-b), transparent) 0 0 / 46vmax 46vmax no-repeat, radial-gradient(closest-side at 80% 70%, var(--orb-a), transparent) 100% 100% / 52vmax 52vmax no-repeat;
+  animation: gdrift 26s ease-in-out infinite alternate; }
+@keyframes gdrift { to { transform: translate(3vw, -4vh) scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
+::selection { background: var(--lime); color: var(--on-lime); }
+:focus-visible, #aRoot :focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; border-radius: 8px; }
+:root[data-theme="light"] :focus-visible { outline-color: #3E9A18; }
+
+/* ---------------------------------------------------------------- app bar */
+.bar { background: var(--nav-bg); -webkit-backdrop-filter: blur(20px) saturate(1.5); backdrop-filter: blur(20px) saturate(1.5); border-bottom: 1px solid var(--line); }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
+.brand .mark { width: 36px; height: 36px; flex: none; filter: drop-shadow(0 6px 18px rgba(120, 200, 40, .35)); }
+.brand .wordmark { height: 24px; width: auto; margin-left: 2px; }
+.wm-light { display: none; } :root[data-theme="light"] .wm-light { display: block; } :root[data-theme="light"] .wm-dark { display: none; }
+.brand .sep { width: 1px; height: 28px; background: var(--chip-line); margin: 0 4px; }
+.brand .name { display: flex; flex-direction: column; line-height: 1.05; }
+.brand .name b { font: 700 16px var(--font); letter-spacing: .2px; }
+.brand .name small { font: 600 11.5px var(--font); letter-spacing: 2.2px; text-transform: uppercase; color: var(--accent-text); margin-top: 4px; }
+.tabs { background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 5px; }
+.tab { border-radius: 999px; color: var(--ink-2); font: 600 14.5px var(--font); padding: 8px 18px; transition: background .2s, color .2s; }
+.tab:hover { color: var(--ink); background: var(--chip-hover); }
+.tab[aria-selected="true"], .jump .tab.on, #aRoot .tab[aria-selected="true"] { background: var(--lime); color: var(--on-lime); box-shadow: 0 8px 20px -8px rgba(180, 240, 60, .7); }
+.jump .tab { padding: 7px 12px; font-size: 13.5px; }
+.iconbtn { height: 40px; min-width: 40px; border-radius: 999px; background: var(--chip); border: 1px solid var(--chip-line); color: var(--ink); font: 600 14px var(--font); transition: background .2s, border-color .2s; }
+.iconbtn:hover { background: var(--chip-hover); border-color: var(--lime); color: var(--ink); }
+.theme-toggle .sun { display: block; } .theme-toggle .moon { display: none; }
+:root[data-theme="light"] .theme-toggle .sun { display: none; } :root[data-theme="light"] .theme-toggle .moon { display: block; }
+.chip { background: var(--chip); border-color: var(--line); color: var(--ink-2); }
+.chip:hover { border-color: var(--lime); color: var(--ink); }
+.chip[aria-pressed="true"], #aRoot .chip[aria-pressed="true"] { background: color-mix(in srgb, var(--c, var(--accent)) 26%, transparent); border-color: var(--c, var(--lime)); color: var(--ink); }
+.field { background: var(--chip); border-color: var(--chip-line); color: var(--ink); border-radius: 999px; }
+.glab { color: var(--muted); }
+
+/* ---------------------------------------------------------------- cards (glass, like the RCTO dashboards) */
+.card, #aRoot .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); padding: 20px 22px;
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); transition: border-color .25s, box-shadow .3s; }
+.card:hover { border-color: color-mix(in srgb, var(--lime) 45%, var(--line)); box-shadow: var(--shadow-lg); }
+.card > h2 { font: 700 16px var(--font); }
+.card > h2 em { color: var(--muted); }
+#aRoot #ap-impact .card { background: var(--card); }
+.kpi, #aRoot .kpi { border-radius: 20px; box-shadow: var(--shadow);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--c) 22%, var(--surface)), var(--surface) 72%); }
+.kpi .val { font-weight: 800; letter-spacing: -.03em; }
+.kpi .lab { letter-spacing: .12em; }
+.tile, #aRoot .tile { border-radius: 14px; }
+.tablewrap { border-radius: 14px; background: var(--card); }
+thead th { background: var(--surface2); }
+.drawer { background: var(--bg); border-left-color: var(--line); }
+.band { border-left-color: var(--lime); }
+.scrim { background: rgba(3, 16, 10, .6); }
+.pill { color: var(--fg); }
+.foot { color: var(--faint); }
+@media (max-width: 720px) { .brand .sep, .brand .name { display: none; } }
+.periodchip { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; background: var(--chip); border: 1px solid var(--chip-line); color: var(--ink-2); font: 600 13.5px var(--font); white-space: nowrap; }
+.periodchip:empty { display: none; }
+@media (max-width: 900px) { .periodchip { display: none; } }
+:root[data-theme="light"] { --band-90: #2a78d6; }

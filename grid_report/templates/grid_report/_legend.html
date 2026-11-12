@@ -1,0 +1,86 @@
+<style>
+/* Clickable legend: click an item to hide that plot, click again to bring it back. */
+.lgbar{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:var(--muted);font-weight:400;margin:0 0 6px}
+.lgi{display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;padding:2px 7px;border-radius:7px;cursor:pointer;font:inherit;color:inherit;line-height:1.35;white-space:nowrap}
+.lgi:hover{color:var(--fg);background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.lgi[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+.lgi .sw{flex:none;display:inline-block;width:10px;height:10px;border-radius:3px}
+.lgi .sw.dot{border-radius:50%}
+.lgi .sw.line{width:16px;height:3px;border-radius:2px}
+.lgi .sw.dash{width:16px;height:0;border-top:2px dashed;background:transparent!important}
+</style>
+<script>
+window.GLegend = (function(){
+  'use strict';
+  var HID = {};   /* chart id -> {legend key: true when hidden}; survives re-draws */
+  var esc = function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+
+  /* items for a normal multi-series chart: one item per series */
+  function autoItems(opts){
+    var ct = (opts.chart && opts.chart.type) || 'line', cols = opts.colors || [], out = [];
+    (opts.series || []).forEach(function(s, i){
+      if (!s || s.name == null || typeof s.name !== 'string') return;
+      var t = s.type || ct, c = cols[i];
+      out.push({key: s.name, label: s.name, color: typeof c === 'string' ? c : 'currentColor',
+        shape: (t==='line' || t==='area') ? 'line' : (t==='scatter' || t==='bubble') ? 'dot' : 'sq', series: [s.name]});
+    });
+    return out;
+  }
+
+  /* drop the hidden points from a bar / treemap definition */
+  function sliceKeep(opts, n, group, hid){
+    var keep = [], i; for (i = 0; i < n; i++) if (!hid[group(i)]) keep.push(i);
+    var pick = function(a){ return keep.map(function(j){ return a[j]; }); };
+    var o = Object.assign({}, opts), ser = opts.series || [];
+    if (ser.length === n && typeof ser[0] === 'number') {            /* donut / pie: one number per slice */
+      o.series = pick(ser);
+      if (Array.isArray(opts.labels) && opts.labels.length === n) o.labels = pick(opts.labels);
+    } else {
+      o.series = ser.map(function(s){ return Array.isArray(s.data) ? Object.assign({}, s, {data: pick(s.data)}) : s; });
+    }
+    if (opts.xaxis && Array.isArray(opts.xaxis.categories) && opts.xaxis.categories.length === n) o.xaxis = Object.assign({}, opts.xaxis, {categories: pick(opts.xaxis.categories)});
+    if (Array.isArray(opts.colors) && opts.colors.length === n && opts.colors.every(function(c){ return typeof c === 'string'; })) o.colors = pick(opts.colors);
+    return {o: o, keep: keep};
+  }
+  function sliceByGroup(opts, n, group, hid){ return sliceKeep(opts, n, group, hid).o; }
+
+  /* prep(id, el, opts, lg, redraw, getChart) -> {opts, done(chart)}
+     lg: undefined = auto (only when opts.legend.show), false = none,
+         {items:[{key,label,color,shape,series:[names]}]}                       -> hides series
+         {items:[...], n, group:i=>key}  (or {items, transform:(opts,hid)=>opts}) -> hides points / bars / ranges */
+  function prep(id, el, opts, lg, redraw, getChart){
+    var bar = document.getElementById('lg-' + id);
+    if (lg === 'auto') lg = {items: autoItems(opts)};
+    else if (lg === undefined) lg = (opts.legend && opts.legend.show) ? {items: autoItems(opts)} : false;
+    if (!lg || !lg.items || !lg.items.length) { if (bar) bar.remove(); return {opts: opts, done: function(){}}; }
+    if (!bar) { bar = document.createElement('div'); bar.id = 'lg-' + id; bar.className = 'lgbar'; el.parentNode.insertBefore(bar, el); }
+    var hid = HID[id] = HID[id] || {}, items = lg.items, pointMode = !!(lg.group || lg.transform);
+    bar.innerHTML = items.map(function(it){
+      var c = it.color || 'currentColor', sh = it.shape || 'sq';
+      var st = sh === 'dash' ? 'border-top-color:' + c : 'background:' + c;
+      return '<button type="button" class="lgi" data-lk="' + esc(it.key) + '" aria-pressed="' + (!hid[it.key]) + '"><i class="sw ' + sh + '" style="' + st + '"></i>' + esc(it.label) + '</button>';
+    }).join('');
+    bar.onclick = function(ev){
+      var b = ev.target.closest('.lgi'); if (!b) return;
+      var key = b.getAttribute('data-lk'), it = items.filter(function(x){ return String(x.key) === key; })[0]; if (!it) return;
+      hid[it.key] = !hid[it.key];
+      b.setAttribute('aria-pressed', String(!hid[it.key]));
+      if (pointMode) { redraw(); return; }
+      var ch = getChart(); if (!ch) return;
+      (it.series || []).forEach(function(nm){ try { hid[it.key] ? ch.hideSeries(nm) : ch.showSeries(nm); } catch(e){} });
+    };
+    var o = Object.assign({}, opts, {legend: {show: false}});
+    var keepIdx = null;
+    if (pointMode) {
+      if (lg.transform) o = lg.transform(o, hid); else { var sk = sliceKeep(o, lg.n, lg.group, hid); o = sk.o; keepIdx = sk.keep; }
+      var any = items.some(function(it){ return !hid[it.key]; });
+      if (!any) o.noData = {text: 'Everything is hidden. Click a legend item to show it again.', style: {color: 'currentColor'}};
+    }
+    return {opts: o, keep: keepIdx, done: function(ch){
+      if (pointMode) return;
+      items.forEach(function(it){ if (hid[it.key]) (it.series || []).forEach(function(nm){ try { ch.hideSeries(nm); } catch(e){} }); });
+    }};
+  }
+  return {prep: prep, auto: autoItems, slice: sliceByGroup};
+})();
+</script>

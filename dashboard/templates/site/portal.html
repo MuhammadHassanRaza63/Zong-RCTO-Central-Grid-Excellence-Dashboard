@@ -1,0 +1,54 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zong · RCTO Central Performance Hub</title>
+<meta name="description" content="RCTO Central performance hub: RCTO Central and Grid Excellence dashboards in one place.">
+<meta name="theme-color" content="#040C07">
+<link rel="icon" href="{% static 'site/img/favicon.svg' %}" type="image/svg+xml">
+{% include "site/_art.html" %}
+<script src="{% static 'site/js/theme.js' %}"></script>
+<link rel="stylesheet" href="{% static 'site/css/site.css' %}">
+</head>
+<body class="portal">
+<header class="nav">
+  <div class="wrap">
+    {% include "site/_brand.html" %}
+    <div class="end"><button class="icon-btn" id="fsBtn" type="button" aria-label="Fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>{% include "site/_theme_toggle.html" %}</div>
+  </div>
+</header>
+
+<main id="main" class="pmain">
+  <div class="wrap">
+    <div class="phead">
+      <h1>Choose a <em>module.</em></h1>
+      <p>Each module is a set of dashboards with its own data, in one look.</p>
+    </div>
+    <div class="pcards">
+      {% for m in modules %}
+      <a class="pcard glass" data-nav style="--c:{{ m.c }}" href="{% url m.url %}">
+        <div class="ppic">
+          <img src="{% static m.img %}" alt="" width="800" height="500">
+          <span class="ico" aria-hidden="true">
+            {% if m.icon == 'bars' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V13M11 22V7M17 22v-8M23 22V10"/><path d="M4 25h20"/></svg>{% endif %}
+            {% if m.icon == 'grid' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8.5" height="8.5" rx="2"/><rect x="15.5" y="4" width="8.5" height="8.5" rx="2"/><rect x="4" y="15.5" width="8.5" height="8.5" rx="2"/><path d="M15.5 19.8H24M19.8 15.5V24"/></svg>{% endif %}
+          </span>
+          {% if m.tag %}<span class="ptag">{{ m.tag }}</span>{% endif %}
+        </div>
+        <div class="pbody">
+          <h2>{{ m.t }}</h2>
+          <p>{{ m.p }}</p>
+          {% if m.m %}<div class="pm">{% for x in m.m %}<div><b>{{ x.v }}</b><span>{{ x.l }}</span></div>{% endfor %}</div>{% endif %}
+          <div class="pfoot"><span class="pli">{% for li in m.li %}<i>{{ li }}</i>{% endfor %}</span>
+            <span class="go">Open <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span></div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+<footer class="site"><div class="wrap"><div class="co"><img class="wm-dark" src="{% static 'site/img/zong-wordmark.svg' %}" alt="zong"><img class="wm-light" src="{% static 'site/img/zong-wordmark-light.svg' %}" alt="zong"><span>© {% now "Y" %} Zong · RCTO Central</span></div></div></footer>
+{% include "site/_fs.html" %}
+</body>
+</html>

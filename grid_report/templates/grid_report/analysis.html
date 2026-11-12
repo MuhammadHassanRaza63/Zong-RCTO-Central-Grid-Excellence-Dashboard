@@ -1,0 +1,965 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grid Analysis Lab</title>
+{% include "site/_art.html" %}<script src="{% static 'site/js/theme.js' %}"></script>
+<style>
+html{zoom:.90}
+@media (max-width:1000px){html{zoom:1}}
+
+/* Same design tokens as report.html so both dashboards look like one product (theme is shared via localStorage 'ged-theme'). */
+:root{
+  --bg:#0A0F1C; --surface:#111A2E; --surface2:#16213A; --line:#243352;
+  --fg:#E8EDF8; --muted:#93A3C2; --faint:#62749B;
+  --accent:#3987e5; --accent-2:#7C6CFF;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:Calibri,Carlito,'Segoe UI',system-ui,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F2F5FA; --surface:#FFFFFF; --surface2:#F6F8FC; --line:#DDE4F0;
+    --fg:#0E1A33; --muted:#4E5F7D; --faint:#8795AF; --accent:#2a78d6; --accent-2:#6250d6;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+    --shadow:0 8px 24px rgba(20,40,90,.10); color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F2F5FA; --surface:#FFFFFF; --surface2:#F6F8FC; --line:#DDE4F0;
+  --fg:#0E1A33; --muted:#4E5F7D; --faint:#8795AF; --accent:#2a78d6; --accent-2:#6250d6;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+  --shadow:0 8px 24px rgba(20,40,90,.10); color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;
+  background-image:radial-gradient(900px 400px at 10% -10%,color-mix(in srgb,var(--accent) 16%,transparent),transparent),radial-gradient(700px 340px at 96% 0%,color-mix(in srgb,var(--accent-2) 12%,transparent),transparent);
+  background-repeat:no-repeat;background-attachment:fixed}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:16px;padding-top:16px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+
+/* command bar */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.row1{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
+.brand h1{font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.brand small{color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tab{border:0;background:transparent;color:var(--muted);padding:7px 16px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+.tools{display:flex;gap:8px;align-items:center}
+.iconbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;height:36px;min-width:36px;padding:0 11px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;justify-content:center;color:var(--muted);text-decoration:none;font-size:13px;font-weight:600}
+.iconbtn:hover{color:var(--fg);border-color:var(--faint)}
+.row2{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.glab{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--faint);font-weight:700;margin-right:2px}
+.chip{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 11px;cursor:pointer;font-size:12.5px;font-weight:500;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.chip:hover{color:var(--fg);border-color:var(--faint)}
+.chip[aria-pressed="true"]{background:color-mix(in srgb,var(--c,var(--accent)) 22%,transparent);border-color:var(--c,var(--accent));color:var(--fg)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+.sep{width:1px;height:20px;background:var(--line)}
+.count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+select.field{background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:10px;height:32px;padding:0 10px;font:inherit;font-size:13px}
+input.field{background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:10px;height:32px;padding:0 10px;font:inherit;font-size:13px;width:160px}
+
+/* KPI cards */
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));border-radius:16px;padding:12px 14px 6px;min-width:0;display:flex;flex-direction:column;gap:2px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--c) 26%,var(--surface)),var(--surface) 72%);box-shadow:var(--shadow)}
+.kpi .lab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.kpi .val{font-family:var(--mono);font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+.kpi .sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.kpi .sp{height:44px;margin:0 -6px -4px}
+.up{color:var(--good)} .dn{color:var(--crit)}
+
+/* panels / cards */
+.panel{display:flex;flex-direction:column;gap:16px}
+.grid12{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+@media (max-width:1100px){.c3,.c4,.c5,.c6,.c7,.c8{grid-column:span 12}.c3.half,.c4.half{grid-column:span 6}}
+@media (max-width:640px){.c3.half,.c4.half{grid-column:span 12}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.card>h2{font-size:14px;font-weight:650;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.card>h2 em{font-style:normal;font-size:11.5px;color:var(--faint);font-weight:500;font-family:var(--mono)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);font-weight:400}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.note{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+.note b{color:var(--fg);font-weight:600}
+.pill{--c:var(--accent);display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;
+  background:color-mix(in srgb,var(--c) 16%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);color:var(--fg)}
+.pill b{color:var(--c);font-weight:800}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.sechead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:6px}
+.sechead h2{font-size:16px;font-weight:700}
+.sechead span{color:var(--muted);font-size:12.5px}
+
+/* insights */
+.ins{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));border-radius:16px;padding:14px 16px;background:linear-gradient(145deg,color-mix(in srgb,var(--c) 18%,var(--surface)),var(--surface) 75%)}
+.ins .t{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.ins .h{font-size:19px;font-weight:700;margin:3px 0 4px;letter-spacing:-.01em}
+.ins p{font-size:12.5px;color:var(--muted)}
+.ins p b{color:var(--fg)}
+
+/* quadrant tiles */
+.qt{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 45%,var(--line));border-radius:14px;padding:12px 14px;background:linear-gradient(150deg,color-mix(in srgb,var(--c) 22%,var(--surface)),var(--surface) 80%)}
+.qt .n{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1.1}
+.qt .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.qt .d{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+thead th{position:sticky;top:0;background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;z-index:1}
+thead th:hover{color:var(--fg)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface2)}
+td.num,th.num{text-align:right}
+.scroll{max-height:560px;overflow:auto}
+.empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+.plot3d{width:100%;height:520px}
+.foot{color:var(--faint);font-size:11.5px;text-align:center;line-height:1.6}
+@media (max-width:560px){.sep{display:none}.count{margin-left:0}input.field{width:100%}}
+
+/* impact tab */
+.imp-bar .note{margin:8px 0 0}
+.imp-hero{--c1:var(--accent);--c2:var(--accent-2);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr);gap:20px;border-radius:20px;padding:22px 24px;border:1px solid color-mix(in srgb,var(--c1) 40%,var(--line));
+  background:radial-gradient(620px 240px at 0% 0%,color-mix(in srgb,var(--c1) 26%,transparent),transparent 70%),radial-gradient(520px 240px at 100% 100%,color-mix(in srgb,var(--c2) 24%,transparent),transparent 70%),var(--surface);box-shadow:var(--shadow)}
+@media (max-width:980px){.imp-hero{grid-template-columns:1fr}}
+.imp-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted)}
+.imp-node{--c:var(--accent);padding:5px 14px;border-radius:999px;font-weight:700;font-size:13px;color:var(--fg);background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 60%,transparent)}
+.imp-verdict{display:flex;align-items:center;gap:12px;font-size:32px;font-weight:800;letter-spacing:-.02em;margin:14px 0 6px;line-height:1.1}
+.imp-verdict i{width:12px;height:12px;border-radius:50%;background:var(--v);box-shadow:0 0 0 5px color-mix(in srgb,var(--v) 25%,transparent);flex:none}
+.imp-left p{color:var(--muted);font-size:13.5px;max-width:62ch}
+.imp-meta{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+.imp-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:center}
+.imp-stat{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 38%,var(--line));border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--c) 20%,var(--surface)),var(--surface) 80%)}
+.imp-stat .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.imp-stat .v{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.15;letter-spacing:-.02em}
+.imp-stat .s{font-size:11.5px;color:var(--muted)}
+.imp-slider{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+.imp-slider b{font-size:20px}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px;cursor:pointer}
+.imp-out{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 8px}
+.imp-out .imp-stat .v{font-size:21px}
+.tt{padding:8px 11px;font-size:12px;line-height:1.55}.tt span{color:var(--muted)}
+
+/* compact stat cards (short label, one value, one short line) */
+.minis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+.mc{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));border-radius:14px;padding:10px 14px;min-width:0;display:flex;flex-direction:column;gap:1px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--c) 22%,var(--surface)),var(--surface) 78%)}
+.mc .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc .v{font-family:var(--mono);font-size:21px;font-weight:600;line-height:1.2;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc .s{font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#p-impact .card{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 94%,var(--accent)),var(--surface))}
+</style>
+<link rel="stylesheet" href="{% static 'grid_report/css/grid-theme.css' %}">
+</head>
+<body>
+<div class="bar"><div class="in">
+  <div class="row1">
+    {% include "grid_report/_brand.html" %}
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-t="overview" aria-selected="true">Overview</button>
+      <button class="tab" role="tab" data-t="impact" aria-selected="false">Impact</button>
+      <button class="tab" role="tab" data-t="pairs" aria-selected="false">Critical pairs</button>
+      <button class="tab" role="tab" data-t="break" aria-selected="false">Breakdown</button>
+      <button class="tab" role="tab" data-t="action" aria-selected="false">Grid actions</button>
+    </div>
+    <div class="tools">
+      <a class="iconbtn" data-nav href="{% url 'dashboards' %}" style="text-decoration:none" title="RCTO Central dashboards"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V11M12 21V4M19 21v-7"/></svg>RCTO</a>
+      <a class="iconbtn" data-nav href="{% url 'grid_report:report' %}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Dashboard</a>
+      <button class="iconbtn" id="fsBtn" type="button" aria-label="Fullscreen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+      <span class="periodchip" id="periodLbl"></span><a class="iconbtn" data-nav href="{% url 'home' %}" aria-label="Home" title="Home"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 10 4l7 5.5V16a1 1 0 0 1-1 1h-3.5v-5h-5v5H4a1 1 0 0 1-1-1z"/></svg></a><button type="button" class="iconbtn theme-toggle" data-theme-toggle id="themeBtn" aria-label="Switch theme" title="Switch theme"><svg class="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3 7 7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7"/></svg><svg class="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg></button>
+    </div>
+  </div>
+  <div class="row2" id="filters"></div>
+</div></div>
+
+<div class="wrap">
+  <section class="kpis" id="kpis" aria-label="Headline KPIs"></section>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section class="panel" id="p-overview">
+    <div class="minis" id="insights"></div>
+    <div class="grid12">
+      <div class="card c5"><h2>Correlation matrix <em>Pearson r · across grids</em></h2><div id="chHeat"></div></div>
+      <div class="card c7"><h2>Which relationships are strongest?</h2><div id="chPairRank"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ IMPACT (cause -> effect) ============ -->
+  <section class="panel" id="p-impact" hidden>
+    <div class="card imp-bar">
+      <div class="grp"><span class="glab">Cause</span><select class="field" id="selC" aria-label="Cause"></select>
+        <button class="iconbtn" id="swapCE" type="button" title="Swap cause and effect" aria-label="Swap cause and effect">⇄</button>
+        <span class="glab">Effect</span><select class="field" id="selE" aria-label="Effect"></select>
+        <span class="sep"></span><span class="glab">Estimate from</span>
+        <button class="chip" type="button" data-ib="within" aria-pressed="true">Inside each grid</button>
+        <button class="chip" type="button" data-ib="cross" aria-pressed="false">Between grids</button></div>
+    </div>
+    <div class="imp-hero" id="impHero"></div>
+    <div class="minis" id="impInsights"></div>
+    <div class="grid12">
+      <div class="card c7"><h2>Cause vs effect across grids <em>line = fit · dashed = 95% band</em></h2><div id="chImpScatter"></div></div>
+      <div class="card c5"><h2>What-if simulator <em>model estimate</em></h2>
+        <div class="imp-slider"><span class="glab">Change in cause</span><b id="whatVal" class="mono"></b></div>
+        <input type="range" id="whatSlider" aria-label="Change in cause">
+        <div class="imp-out" id="whatOut"></div><div id="chImpResp"></div></div>
+    </div>
+    <div class="sechead"><h2>Timing and trend</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Lead / lag test <em>inside-grid r by month offset</em></h2><div id="chImpLag"></div></div>
+      <div class="card c6"><h2>Indexed trend, network <em>first month = 100</em></h2><div id="chImpIdx"></div></div>
+    </div>
+    <div class="sechead"><h2>What moves the effect</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Drivers ranked <em>correlation r</em></h2><div id="chImpDrv"></div></div>
+      <div class="card c6"><h2>Month-over-month moves <em>network, % change</em></h2><div id="chImpMom"></div></div>
+    </div>
+    <div class="sechead"><h2>Where to act</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Grid momentum <em>trend of cause vs trend of effect</em></h2><div id="chImpQuad"></div></div>
+      <div class="card c6"><h2>Upside from closing the gap <em>per site, top grids</em></h2><div id="chImpTree"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ CRITICAL PAIRS ============ -->
+  <section class="panel" id="p-pairs" hidden>
+    <div id="pairBlocks" class="panel"></div>
+    <div class="sechead"><h2>Pair stability over months</h2></div>
+    <div class="card"><h2>Monthly correlation (r) of the five critical pairs</h2><div id="chMonthR"></div></div>
+    <div class="sechead"><h2>Build your own pair</h2></div>
+    <div class="card">
+      <div class="grp" style="margin-bottom:8px"><span class="glab">X</span><select class="field" id="selX"></select><span class="glab">Y</span><select class="field" id="selY"></select></div>
+      <div class="pills" id="customPills"></div>
+      <div class="note" id="customNote"></div>
+      <div id="chCustom"></div>
+    </div>
+  </section>
+
+  <!-- ============ BREAKDOWN ============ -->
+  <section class="panel" id="p-break" hidden>
+    <div class="sechead"><h2>Sub-region wise</h2></div>
+    <div class="grid12" id="smRow"></div>
+    <div class="card"><h2>Sub-region scorecard</h2><div class="tablewrap"><table id="tblReg"><thead></thead><tbody></tbody></table></div></div>
+
+    <div class="sechead"><h2>Site classification wise</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Availability by power category</h2><div id="chCat"></div></div>
+      <div class="card c6"><h2>Site tier mix by sub-region <em>% of sites</em></h2><div id="chTier"></div></div>
+    </div>
+    <div class="grid12">
+      <div class="card c6"><h2>Premium-tier share vs Availability <em>Platinum+ &amp; Platinum</em></h2><div class="pills" id="pillPA"></div><div id="chPremA"></div></div>
+      <div class="card c6"><h2>Premium-tier share vs Revenue</h2><div class="pills" id="pillPR"></div><div id="chPremR"></div></div>
+    </div>
+
+    <div class="sechead"><h2>Group wise</h2></div>
+    <div class="grid12">
+      <div class="card c5"><h2>Group vs Central average <em>% difference · site-weighted</em></h2><div id="chGroupRadar"></div></div>
+      <div class="card c7"><h2>Group scorecard</h2><div class="tablewrap"><table id="tblGrp"><thead></thead><tbody></tbody></table></div></div>
+    </div>
+    <div class="card">
+      <h2>Grid-wise leaders &amp; laggards <span class="grp" id="gmChips"></span></h2>
+      <div class="grid12">
+        <div class="c6"><div class="note"><b>Best 10</b></div><div id="chBest"></div></div>
+        <div class="c6"><div class="note"><b>Weakest 10</b></div><div id="chWorst"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GRID ACTIONS ============ -->
+  <section class="panel" id="p-action" hidden>
+    <div class="grid12" id="quadTiles"></div>
+    <div class="grid12">
+      <div class="card c7"><h2>Grid quadrants: Availability vs Revenue <em>lines = all-grid medians</em></h2><div id="chQuad"></div></div>
+      <div class="card c5"><h2>Revenue vs what availability predicts <em>% gap · all-grid fit</em></h2><div class="note" id="gapNote"></div><div id="chGap"></div></div>
+    </div>
+    <div class="card"><h2>Grid action list <input class="field" id="q" type="search" placeholder="Search grid…" aria-label="Search grid"></h2>
+      <div class="tablewrap scroll"><table id="tblGrid"><thead></thead><tbody></tbody></table></div></div>
+  </section>
+
+</div>
+
+{{ report_data|json_script:"report-data" }}
+{% include "grid_report/_legend.html" %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.1/apexcharts.min.js"></script>
+<script>
+(function(){
+  'use strict';
+  /* ------------------------------------------------------------------ data */
+  const D = JSON.parse(document.getElementById('report-data').textContent);
+  const R = D.regions, CEN = R[0], REG = R.slice(1), M = D.months, META = D.meta;
+  const REGN = REG.map(r => r.name);
+  const TIERS = ['Platinum +','Platinum','Gold','Silver','Bronze','Strategic','LRS'];
+  const G = D.grids.map(g => {
+    const mix = (g.trk && g.trk.mix) || {};
+    g.mix = mix; g.tot = TIERS.reduce((a,t) => a + (mix[t]||0), 0);
+    g.prem = g.tot ? ((mix['Platinum +']||0) + (mix['Platinum']||0)) / g.tot * 100 : null;
+    return g;
+  });
+
+  /* measures: t = monthly series key, good = +1 higher is better, -1 lower is better */
+  const F = {
+    avl:  {n:'Availability', sh:'Avail',  t:'t_avl',   good:1,  c:'--s1', f:v=>v.toFixed(2)+'%', ax:v=>v.toFixed(1)+'%', step:1,      stepL:'1 pt'},
+    ls:   {n:'Load shedding', sh:'LS', t:'t_ls',    good:-1, c:'--s4', f:v=>v.toFixed(2),     ax:v=>v.toFixed(1),     step:1,      stepL:'1 unit'},
+    voice:{n:'Voice', sh:'Voice',         t:'t_voice', good:1,  c:'--s2', f:v=>v.toFixed(0),     ax:v=>v.toFixed(0),     step:100,    stepL:'100'},
+    data: {n:'Data', sh:'Data',          t:'t_data',  good:1,  c:'--s3', f:v=>v.toFixed(0),     ax:v=>v.toFixed(0),     step:100,    stepL:'100'},
+    rev:  {n:'Revenue', sh:'Revenue',       t:'t_rev',   good:1,  c:'--s5', f:v=>(v/1000).toFixed(0)+'K', ax:v=>(v/1000).toFixed(0)+'K', step:100000, stepL:'100K'},
+    prem: {n:'Premium-tier share', t:null, good:1,  c:'--accent', f:v=>v.toFixed(1)+'%', ax:v=>v.toFixed(0)+'%', step:10, stepL:'10 pts'},
+    sites:{n:'Sites',         t:null,      good:0,  c:'--faint', f:v=>v.toFixed(0), ax:v=>v.toFixed(0), step:10, stepL:'10 sites'}
+  };
+  const MK = ['avl','ls','voice','data','rev'];
+  // y-change formatter for "per step of X" statements
+  const fD = (k,v) => k==='rev' ? (v/1000).toFixed(1)+'K' : k==='avl' ? v.toFixed(2)+' pt' : k==='ls' ? v.toFixed(2) : k==='prem' ? v.toFixed(1)+' pts' : v.toFixed(0);
+  const PAIRS = [
+    {id:'avl_rev',  x:'avl',   y:'rev',   t:'Availability vs Revenue'},
+    {id:'data_voice',x:'data', y:'voice', t:'Data vs Voice'},
+    {id:'ls_avl',   x:'ls',    y:'avl',   t:'Load shedding vs Availability'},
+    {id:'avl_data', x:'avl',   y:'data',  t:'Availability vs Data'},
+    {id:'avl_voice',x:'avl',   y:'voice', t:'Availability vs Voice'}
+  ];
+  const GROUPS = [{k:'95-108%',n:'95%+'},{k:'90-95%',n:'90–95%'},{k:'80-90%',n:'80–90%'},{k:'<80%',n:'<80%'}];
+  const TIERCOL = {'Platinum +':'#7C6CFF','Platinum':'#3987e5','Gold':'#c98500','Silver':'#93A3C2','Bronze':'#d95926','Strategic':'#199e70','LRS':'#d55181'};
+  const state = {tab:'overview', region:'All', group:'all', gm:'rev', cx:'avl', cy:'rev', sm:'t_avl', q:'', sort:{k:'rev',d:-1}, rot:false};
+
+  /* ---------------------------------------------------------------- helpers */
+  const $ = id => document.getElementById(id);
+  $('periodLbl').textContent = META.period + ' · ' + META.title.replace(/.*\(/,'').replace(')','');
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const isDark = () => { const t = document.documentElement.getAttribute('data-theme'); return t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const sum = (a,f) => a.reduce((x,y)=>x+f(y),0);
+  const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : NaN;
+  const median = a => { const s=[...a].sort((x,y)=>x-y), n=s.length; return n ? (n%2 ? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2) : NaN; };
+  const sg = (v,d=2) => (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(d);
+
+  function pearson(x,y){
+    const n=x.length; if(n<3) return NaN;
+    const mx=mean(x), my=mean(y); let sxy=0,sxx=0,syy=0;
+    for(let i=0;i<n;i++){ const a=x[i]-mx, b=y[i]-my; sxy+=a*b; sxx+=a*a; syy+=b*b; }
+    return (sxx && syy) ? sxy/Math.sqrt(sxx*syy) : NaN;
+  }
+  function reg(list,xk,yk){
+    const L = list.filter(g=>g[xk]!=null && g[yk]!=null);
+    const x=L.map(g=>+g[xk]), y=L.map(g=>+g[yk]), r=pearson(x,y);
+    if (isNaN(r)) return null;
+    const mx=mean(x), my=mean(y); let sxy=0,sxx=0;
+    for(let i=0;i<x.length;i++){ sxy+=(x[i]-mx)*(y[i]-my); sxx+=(x[i]-mx)*(x[i]-mx); }
+    const m=sxy/sxx; return {m, b:my-m*mx, r, r2:r*r, n:x.length, L};
+  }
+  const strength = r => { const a=Math.abs(r); return a>=.7?'strong':a>=.4?'moderate':a>=.2?'weak':'negligible'; };
+  const dirOf = r => r>0 ? 'positive' : 'negative';
+  const wm = (list,tk,i) => { const L=list.filter(g=>g[tk] && g[tk][i]!=null); const w=sum(L,g=>g.sites); return w ? sum(L,g=>g.sites*g[tk][i])/w : null; };
+  const wavg = (list,k) => { const L=list.filter(g=>g[k]!=null); const w=sum(L,g=>g.sites); return w ? sum(L,g=>g.sites*g[k])/w : null; };
+  const regCol = name => css('--s'+(REGN.indexOf(name)+1));
+  const short = n => n==='Central' ? 'Central' : n.replace('Central-','C');
+  const vis = () => G.filter(g => (state.region==='All' || g.region===state.region) && (state.group==='all' || g.bin===state.group));
+
+  /* global reference points (all 47 grids, so quadrant calls do not shift when a filter is on) */
+  const MED = {avl: median(G.map(g=>g.avl)), rev: median(G.map(g=>g.rev))};
+  const GFIT = reg(G,'avl','rev');
+  G.forEach(g => { g.exp = GFIT.m*g.avl + GFIT.b; g.gap = (g.rev-g.exp)/g.exp*100; });
+  const QUADS = {
+    star:   {n:'Star',    c:'--good',    d:'Availability and revenue both above median'},
+    protect:{n:'Protect', c:'--crit',    d:'High revenue but availability below median: fix first'},
+    grow:   {n:'Grow',    c:'--accent',  d:'Healthy availability, revenue below median: traffic / commercial push'},
+    fix:    {n:'Fix',     c:'--warn',    d:'Below median on both'}
+  };
+  const quadOf = g => g.avl>=MED.avl ? (g.rev>=MED.rev?'star':'grow') : (g.rev>=MED.rev?'protect':'fix');
+  const qpill = q => '<span class="pill" style="--c:var('+QUADS[q].c+')"><b>●</b>'+QUADS[q].n+'</span>';
+
+  /* ---------------------------------------------------------------- charts */
+  const charts = {};
+  function mrg(a,b){
+    if (Array.isArray(b) || b===null || typeof b!=='object') return b===undefined ? a : b;
+    const o = Object.assign({}, a);
+    Object.keys(b).forEach(k => { o[k] = (a && a[k] && typeof a[k]==='object' && !Array.isArray(a[k])) ? mrg(a[k],b[k]) : b[k]; });
+    return o;
+  }
+  function draw(id, opts, lg){
+    const el = $(id); if (!el) return;
+    if (charts[id]) { try { charts[id].destroy(); } catch(e){} delete charts[id]; }
+    el.innerHTML = '';
+    const dark = isDark();
+    const base = {
+      chart:{background:'transparent', toolbar:{show:false}, fontFamily:css('--font'), foreColor:css('--muted'), animations:{enabled:!reduce}, zoom:{enabled:false}},
+      theme:{mode:dark?'dark':'light'},
+      grid:{borderColor:css('--line'), strokeDashArray:3},
+      tooltip:{theme:dark?'dark':'light'},
+      dataLabels:{enabled:false}, legend:{show:false}
+    };
+    const P = GLegend.prep(id, el, opts, lg, () => draw(id, opts, lg), () => charts[id]);
+    const c = new ApexCharts(el, mrg(base, P.opts)); charts[id] = c;
+    const r = c.render(); if (r && r.then) r.then(() => P.done(c));
+  }
+  const noData = id => { const el=$(id); const lb=document.getElementById('lg-'+id); if(lb) lb.remove(); if(charts[id]){try{charts[id].destroy()}catch(e){} delete charts[id];} if(el) el.innerHTML = '<div class="empty">No grids match the current filters.</div>'; };
+
+  /* scatter with per-subregion colours + regression line */
+  function scatter(id, list, xk, yk, o){
+    o = o || {};
+    const X=F[xk], Y=F[yk], st = reg(list,xk,yk);
+    const L = list.filter(g=>g[xk]!=null && g[yk]!=null);
+    if (!st) return noData(id);
+    const names = REGN.filter(n => L.some(g=>g.region===n));
+    const series = names.map(n => ({name:n, type:'scatter', data:L.filter(g=>g.region===n).map(g=>({x:+g[xk], y:+g[yk], g:g.name, s:g.sites}))}));
+    const xs = L.map(g=>+g[xk]), ys = L.map(g=>+g[yk]);
+    const x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+    const px=(x1-x0)*.06||1, py=(y1-y0)*.08||1;
+    series.push({name:'Trend', type:'line', data:[{x:x0,y:st.m*x0+st.b},{x:x1,y:st.m*x1+st.b}]});
+    const colors = names.map(regCol).concat([css('--fg')]);
+    const ann = {xaxis:[{x:mean(xs), borderColor:css('--faint'), strokeDashArray:4}], yaxis:[{y:mean(ys), borderColor:css('--faint'), strokeDashArray:4}]};
+    draw(id, {
+      chart:{type:'line', height:o.h||360},
+      series, colors,
+      stroke:{width:names.map(()=>0).concat([2.5]), dashArray:names.map(()=>0).concat([0])},
+      markers:{size:names.map(()=>6).concat([0]), strokeWidth:1, strokeColors:css('--surface'), hover:{sizeOffset:3}},
+      xaxis:{type:'numeric', min:x0-px, max:x1+px, tickAmount:7, title:{text:X.n}, labels:{formatter:v=>X.ax(+v)}, axisBorder:{show:false}},
+      yaxis:{min:y0-py, max:y1+py, tickAmount:6, title:{text:Y.n}, labels:{formatter:v=>Y.ax(+v)}},
+      annotations:ann,
+      legend:{show:true, position:'top', horizontalAlign:'left', markers:{size:6}, showForSingleSeries:false, onItemClick:{toggleDataSeries:true}},
+      tooltip:{shared:false, intersect:true, custom:({seriesIndex,dataPointIndex,w})=>{
+        const p = w.config.series[seriesIndex].data[dataPointIndex]; if(!p||!p.g) return '';
+        const reg_ = w.config.series[seriesIndex].name;
+        return '<div style="padding:8px 10px;font-size:12px"><b>'+esc(p.g)+'</b> <span style="opacity:.7">'+esc(reg_)+'</span><br>'+X.n+': <b>'+X.f(p.x)+'</b><br>'+Y.n+': <b>'+Y.f(p.y)+'</b><br>Sites: '+p.s+'</div>';
+      }}
+    });
+  }
+
+  /* ---------------------------------------------------------- text builders */
+  function statPills(st, extra){
+    if (!st) return '';
+    const c = st.r>0 ? '--s3' : '--s2';
+    return '<span class="pill" style="--c:var('+c+')">r <b>'+sg(st.r)+'</b> '+strength(st.r)+' '+dirOf(st.r)+'</span>'
+      + '<span class="pill">R² <b>'+(st.r2*100).toFixed(0)+'%</b></span>'
+      + '<span class="pill">n <b>'+st.n+'</b> grids</span>' + (extra||'');
+  }
+  /* ------------------------------------------------------------ filters bar */
+  function drawFilters(){
+    const regs = ['All'].concat(REGN);
+    const rc = regs.map(r => '<button class="chip" type="button" data-region="'+r+'" aria-pressed="'+(state.region===r)+'" '+(r==='All'?'':'style="--c:var(--s'+(REGN.indexOf(r)+1)+')"')+'>'+(r==='All'?'':'<i class="dot" style="--c:var(--s'+(REGN.indexOf(r)+1)+')"></i>')+(r==='All'?'All Central':r)+'</button>').join('');
+    const gc = [{k:'all',n:'All'}].concat(GROUPS).map(x => '<button class="chip" type="button" data-group="'+x.k+'" aria-pressed="'+(state.group===x.k)+'">'+x.n+'</button>').join('');
+    const L = vis();
+    $('filters').innerHTML = '<div class="grp"><span class="glab">Sub-region</span>'+rc+'</div><span class="sep"></span><div class="grp"><span class="glab">Grid group</span>'+gc+'</div>'
+      + '<span class="count">'+L.length+' grids · '+L.reduce((a,g)=>a+g.sites,0).toLocaleString('en-US')+' sites</span>';
+  }
+
+  /* -------------------------------------------------------------------- KPIs */
+  function drawKpis(){
+    const L = vis();
+    $('kpis').innerHTML = MK.map(k => '<div class="kpi" style="--c:var('+F[k].c+')"><span class="lab">'+F[k].n+'</span><span class="val" id="kv-'+k+'">–</span><span class="sub" id="ks-'+k+'"></span><div class="sp" id="ksp-'+k+'"></div></div>').join('');
+    if (!L.length) return;
+    MK.forEach(k => {
+      const ser = M.map((_,i) => wm(L,F[k].t,i));
+      const ix = ser.map((v,i)=>v==null?-1:i).filter(i=>i>=0), nn = ix.map(i=>ser[i]), cur = nn[nn.length-1], prev = nn[nn.length-2], pl = M[ix[ix.length-2]], late = ix[ix.length-1]!==M.length-1 ? ' · '+M[ix[ix.length-1]]+' latest' : '';  // revenue lags one month
+      $('kv-'+k).textContent = F[k].f(cur);
+      if (prev != null && prev !== 0) {
+        const d = (cur-prev)/prev*100, good = d*F[k].good > 0;
+        $('ks-'+k).innerHTML = '<span class="'+(Math.abs(d)<.05?'':(good?'up':'dn'))+'">'+(d>=0?'▲':'▼')+' '+Math.abs(d).toFixed(2)+'%</span> vs '+pl+late;
+      }
+      draw('ksp-'+k, {chart:{type:'area', height:44, sparkline:{enabled:true}}, series:[{name:F[k].n, data:ser}], colors:[css(F[k].c)],
+        stroke:{width:2, curve:'smooth'}, fill:{type:'gradient', gradient:{opacityFrom:.35, opacityTo:0}}, xaxis:{categories:M},
+        tooltip:{x:{show:true}, y:{formatter:v=>F[k].f(v)}}, grid:{padding:{left:0,right:0,top:2,bottom:0}}});
+    });
+  }
+
+  /* ---------------------------------------------------------------- overview */
+  function allPairs(L){
+    const out = [];
+    for (let i=0;i<MK.length;i++) for (let j=i+1;j<MK.length;j++){ const st = reg(L,MK[i],MK[j]); if (st) out.push({a:MK[i], b:MK[j], r:st.r}); }
+    return out.sort((p,q)=>Math.abs(q.r)-Math.abs(p.r));
+  }
+  function drawOverview(){
+    const L = vis();
+    if (L.length < 4) { $('insights').innerHTML = '<div class="card c12"><div class="empty">Select at least 4 grids to compute relationships.</div></div>'; noData('chHeat'); noData('chPairRank'); return; }
+    const ps = allPairs(L), top = ps[0], ar = reg(L,'avl','rev'), lr = reg(L,'ls','avl');
+    const protect = L.filter(g=>quadOf(g)==='protect').sort((a,b)=>b.rev-a.rev);
+    const byReg = REGN.map(n => ({n, l:L.filter(g=>g.region===n)})).filter(x=>x.l.length).map(x => ({n:x.n, avl:wavg(x.l,'avl'), rev:wavg(x.l,'rev')}));
+    const lowA = byReg.slice().sort((a,b)=>a.avl-b.avl)[0];
+    const pr_ = reg(L.filter(g=>g.prem!=null),'prem','rev');
+    const strongWord = r => strength(r) + ' ' + (r>0?'+':'−');
+    const cards = [
+      {c:'--accent', t:'Strongest link', v:F[top.a].sh+' ↔ '+F[top.b].sh, s:'r '+sg(top.r)+' · '+strength(top.r)},
+      {c:'--s5', t:'Availability → Revenue', v: ar ? 'R² '+(ar.r2*100).toFixed(0)+'%' : '–', s: ar ? 'r '+sg(ar.r)+' · '+strength(ar.r) : 'n/a'},
+      {c:'--s4', t:'LS → Availability', v: lr ? 'r '+sg(lr.r) : '–', s: lr ? strength(lr.r)+' '+dirOf(lr.r) : 'n/a'},
+      {c:'--crit', t:'Protect first', v: protect.length+' grid'+(protect.length===1?'':'s'), s: protect.length ? protect.slice(0,2).map(g=>g.name).join(', ')+(protect.length>2?' +'+(protect.length-2):'') : 'none'},
+      {c:'--s3', t:'Revenue driver', v: pr_ ? 'R² '+(pr_.r2*100).toFixed(0)+'%' : '–', s: pr_ ? 'Premium share · r '+sg(pr_.r) : 'n/a'},
+      {c:'--warn', t:'Lowest availability', v:lowA.n, s:F.avl.f(lowA.avl)}
+    ];
+    $('insights').innerHTML = cards.map(x => '<div class="mc" style="--c:var('+x.c+')"><span class="l">'+esc(x.t)+'</span><span class="v">'+esc(x.v)+'</span><span class="s">'+esc(x.s)+'</span></div>').join('');
+
+    // heatmap (reversed so the diagonal runs top-left → bottom-right)
+    const series = MK.slice().reverse().map(a => ({name:F[a].sh, data:MK.map(b => ({x:F[b].sh, y: a===b ? 1 : +(reg(L,a,b)||{r:0}).r.toFixed(2)}))}));
+    const HR = [{from:-1,to:-.7,color:'#b03030',name:'strong −'},{from:-.7,to:-.4,color:'#d2603a',name:'moderate −'},{from:-.4,to:-.2,color:'#c98a4a',name:'weak −'},
+      {from:-.2,to:.2,color:'#5b6b8c',name:'~ none'},{from:.2,to:.4,color:'#4a9d86',name:'weak +'},{from:.4,to:.7,color:'#1f9d6a',name:'moderate +'},{from:.7,to:1.01,color:'#0a7d4f',name:'strong +'}];
+    draw('chHeat', {chart:{type:'heatmap', height:340}, series, dataLabels:{enabled:true, style:{colors:['#fff'], fontSize:'12px', fontFamily:css('--mono')}, formatter:v=>v.toFixed(2)},
+      plotOptions:{heatmap:{radius:6, enableShades:false, colorScale:{ranges:HR}}},
+      stroke:{width:2, colors:[css('--surface')]}, grid:{show:false}, xaxis:{labels:{style:{fontSize:'11px'}, rotate:0, hideOverlappingLabels:false}, tooltip:{enabled:false}}},
+      {items:HR.map(r=>({key:r.name, label:r.name, color:r.color})),
+       transform:(o,hid) => mrg(o, {plotOptions:{heatmap:{colorScale:{ranges:HR.map(r=>hid[r.name]?Object.assign({},r,{color:'transparent'}):r)}}},
+         dataLabels:{formatter:v => HR.some(r=>hid[r.name] && v>=r.from && v<r.to) ? '' : v.toFixed(2)}})});
+
+    // pair ranking
+    const pr = ps.slice().sort((p,q)=>Math.abs(q.r)-Math.abs(p.r));
+    draw('chPairRank', {chart:{type:'bar', height:340}, series:[{name:'r', data:pr.map(p=>+p.r.toFixed(2))}],
+      plotOptions:{bar:{horizontal:true, borderRadius:4, barHeight:'66%', distributed:true}}, colors:pr.map(p=>p.r>=0?css('--s3'):css('--s2')),
+      xaxis:{categories:pr.map(p=>F[p.a].sh+' ↔ '+F[p.b].sh+'   '+sg(p.r)), min:-1, max:1, tickAmount:8, labels:{formatter:v=>(+v).toFixed(1)}},
+      tooltip:{y:{formatter:v=>'r = '+sg(v)}}, annotations:{xaxis:[{x:0, borderColor:css('--faint')}]}},
+      {items:[{key:'pos', label:'Positive', color:css('--s3')},{key:'neg', label:'Negative', color:css('--s2')}], n:pr.length, group:i=>pr[i].r>=0?'pos':'neg'});
+  }
+
+  /* ---------------------------------------------------------- critical pairs */
+  function dual(id, L, xk, yk){
+    const X=F[xk], Y=F[yk];
+    const sx = M.map((_,i)=>wm(L,X.t,i)), sy = M.map((_,i)=>wm(L,Y.t,i));
+    const ax = (K,s,opp) => ({opposite:opp, title:{text:K.n, style:{color:css(K.c)}}, labels:{style:{colors:css(K.c)}, formatter:v=>K.ax(+v)}, min:Math.min(...s.filter(v=>v!=null))*(K===F.rev||K===F.voice||K===F.data?.97:.998), max:Math.max(...s.filter(v=>v!=null))*(K===F.rev||K===F.voice||K===F.data?1.03:1.002), tickAmount:5});
+    draw(id, {chart:{type:'line', height:360}, series:[{name:X.n, data:sx}, {name:Y.n, data:sy}], colors:[css(X.c), css(Y.c)],
+      stroke:{width:3, curve:'straight'}, markers:{size:4, strokeWidth:0}, xaxis:{categories:M, axisBorder:{show:false}},
+      yaxis:[ax(X,sx,false), ax(Y,sy,true)], legend:{show:true, position:'top', horizontalAlign:'left'},
+      tooltip:{shared:true, intersect:false, y:[{formatter:v=>X.f(v)},{formatter:v=>Y.f(v)}]}});
+  }
+  function drawPairs(){
+    const L = vis();
+    $('pairBlocks').innerHTML = PAIRS.map(p =>
+      '<div class="sechead"><h2>'+p.t+'</h2></div><div class="grid12">'
+      + '<div class="card c7"><h2>Grid scatter <em>'+F[p.x].n+' (x) · '+F[p.y].n+' (y)</em></h2><div class="pills" id="pp-'+p.id+'"></div><div id="sc-'+p.id+'"></div></div>'
+      + '<div class="card c5"><h2>Monthly co-movement <em>each axis has its own scale</em></h2><div id="du-'+p.id+'"></div></div></div>').join('');
+    if (L.length < 4) { PAIRS.forEach(p => { noData('sc-'+p.id); noData('du-'+p.id); }); noData('chMonthR'); return; }
+    PAIRS.forEach(p => {
+      const st = reg(L,p.x,p.y);
+      $('pp-'+p.id).innerHTML = statPills(st);
+      scatter('sc-'+p.id, L, p.x, p.y);
+      dual('du-'+p.id, L, p.x, p.y);
+    });
+    // monthly r
+    const series = PAIRS.map(p => ({name:F[p.x].n+' ↔ '+F[p.y].n, data:M.map((_,i) => {
+      const l = L.filter(g=>g[F[p.x].t] && g[F[p.y].t] && g[F[p.x].t][i]!=null && g[F[p.y].t][i]!=null);
+      const r = pearson(l.map(g=>g[F[p.x].t][i]), l.map(g=>g[F[p.y].t][i])); return isNaN(r)?null:+r.toFixed(2); })}));
+    const cols = [css('--s5'), css('--s2'), css('--s4'), css('--s3'), css('--s1')];
+    draw('chMonthR', {chart:{type:'line', height:340}, series, colors:cols, stroke:{width:3, curve:'straight'}, markers:{size:4, strokeWidth:0},
+      legend:{show:true, position:'top', horizontalAlign:'left'}, xaxis:{categories:M, axisBorder:{show:false}}, yaxis:{min:-1, max:1, tickAmount:8, labels:{formatter:v=>(+v).toFixed(1)}, title:{text:'Pearson r'}},
+      annotations:{yaxis:[{y:0, borderColor:css('--faint')}]}, tooltip:{shared:true, intersect:false, y:{formatter:v=>v==null?'–':sg(v)}}});
+    drawCustom();
+  }
+  function drawCustom(){
+    const L = vis(), xk=state.cx, yk=state.cy;
+    if (!$('selX').options.length){
+      const opts = ['avl','ls','voice','data','rev','prem','sites'].map(k=>'<option value="'+k+'">'+F[k].n+'</option>').join('');
+      $('selX').innerHTML = opts; $('selY').innerHTML = opts;
+    }
+    $('selX').value = xk; $('selY').value = yk;
+    if (xk===yk) { $('customPills').innerHTML=''; $('customNote').textContent='Choose two different measures.'; return noData('chCustom'); }
+    $('customPills').innerHTML = statPills(reg(L,xk,yk));
+    $('customNote').textContent = '';
+    scatter('chCustom', L, xk, yk);
+  }
+
+  /* --------------------------------------------------------------- breakdown */
+  function drawBreak(){
+    const rows = [CEN].concat(REG);
+    // small multiples
+    $('smRow').innerHTML = MK.map(k => '<div class="card c4"><h2>'+F[k].n+(F[k].good<0?' <em>lower is better</em>':'')+'</h2><div id="sm-'+k+'"></div></div>').join('')
+      + '<div class="card c4"><h2>Sites per sub-region</h2><div id="sm-sites"></div></div>';
+    const cols = [css('--faint')].concat(REGN.map(regCol));
+    const ptLegend = (names, colors) => ({items:names.map((n,i)=>({key:n, label:n, color:colors[i]})), n:names.length, group:i=>names[i]});
+    MK.forEach(k => {
+      const vals = rows.map(r=>+r[k]);
+      const min = k==='avl' ? Math.floor((Math.min(...vals)-.3)*2)/2 : 0;
+      draw('sm-'+k, {chart:{type:'bar', height:230}, series:[{name:F[k].n, data:vals}], colors:cols,
+        plotOptions:{bar:{borderRadius:4, columnWidth:'64%', distributed:true, dataLabels:{position:'top'}}}, dataLabels:{enabled:true, formatter:v=>F[k].ax(+v), offsetY:-20, style:{fontSize:'10.5px', fontFamily:css('--mono'), colors:[css('--fg')]}},
+        xaxis:{categories:rows.map(r=>short(r.name)), axisBorder:{show:false}}, yaxis:{min, labels:{formatter:v=>F[k].ax(+v)}},
+        annotations:{yaxis:[{y:+CEN[k], borderColor:css('--faint'), strokeDashArray:4}]}, tooltip:{y:{formatter:v=>F[k].f(+v)}}}, ptLegend(rows.map(r=>short(r.name)), cols));
+    });
+    draw('sm-sites', {chart:{type:'bar', height:230}, series:[{name:'Sites', data:REG.map(r=>+r.sites)}], colors:cols.slice(1),
+      plotOptions:{bar:{borderRadius:4, columnWidth:'64%', distributed:true, dataLabels:{position:'top'}}}, dataLabels:{enabled:true, formatter:v=>Math.round(v).toLocaleString('en-US'), offsetY:-20, style:{fontSize:'10.5px', fontFamily:css('--mono'), colors:[css('--fg')]}},
+      xaxis:{categories:REG.map(r=>short(r.name)), axisBorder:{show:false}}, yaxis:{labels:{formatter:v=>Math.round(v).toLocaleString('en-US')}}}, ptLegend(REG.map(r=>short(r.name)), cols.slice(1)));
+
+    // sub-region table
+    const cnt = n => G.filter(g=>g.region===n).length;
+    $('tblReg').querySelector('thead').innerHTML = '<tr><th>Sub-region</th><th class="num">Grids</th><th class="num">Sites</th>'+MK.map(k=>'<th class="num">'+F[k].n+'</th>').join('')+'<th class="num">r (Avail,Rev)</th></tr>';
+    $('tblReg').querySelector('tbody').innerHTML = rows.map(r => {
+      const l = r.name==='Central' ? G : G.filter(g=>g.region===r.name), st = reg(l,'avl','rev');
+      return '<tr><td><b>'+esc(r.name)+'</b></td><td class="num mono">'+l.length+'</td><td class="num mono">'+Math.round(r.sites).toLocaleString('en-US')+'</td>'
+        + MK.map(k=>'<td class="num mono">'+F[k].f(+r[k])+'</td>').join('') + '<td class="num mono">'+(st?sg(st.r)+' <small style="color:var(--faint)">n='+st.n+'</small>':'–')+'</td></tr>';
+    }).join('');
+
+    // site classification: power categories
+    const cat = [{k:'avl_p',n:'Platinum',c:'--s1'},{k:'avl_g',n:'PGS',c:'--s3'},{k:'avl_s',n:'SB',c:'--s4'},{k:'avl_dg',n:'DG',c:'--s2'}];
+    const cvals = rows.flatMap(r=>cat.map(c=>+r[c.k]));
+    draw('chCat', {legend:{show:true}, chart:{type:'bar', height:320}, series:cat.map(c=>({name:c.n, data:rows.map(r=>+r[c.k])})), colors:cat.map(c=>css(c.c)),
+      plotOptions:{bar:{borderRadius:3, columnWidth:'72%'}}, xaxis:{categories:rows.map(r=>short(r.name)), axisBorder:{show:false}},
+      yaxis:{min:Math.floor(Math.min(...cvals)-.5), labels:{formatter:v=>(+v).toFixed(1)+'%'}, title:{text:'Availability % (axis does not start at 0)'}}, tooltip:{shared:true, intersect:false, y:{formatter:v=>(+v).toFixed(2)+'%'}}});
+    // tier mix
+    const tierRows = REGN.map(n => { const l=G.filter(g=>g.region===n); return {n, t:TIERS.map(t=>sum(l,g=>g.mix[t]||0))}; });
+    tierRows.unshift({n:'Central', t:TIERS.map(t=>sum(G,g=>g.mix[t]||0))});
+    draw('chTier', {chart:{type:'bar', height:320, stacked:true, stackType:'100%'}, series:TIERS.map((t,i)=>({name:t, data:tierRows.map(r=>r.t[i])})), colors:TIERS.map(t=>TIERCOL[t]),
+      plotOptions:{bar:{horizontal:true, barHeight:'68%'}}, xaxis:{categories:tierRows.map(r=>short(r.n)), labels:{formatter:v=>Math.round(v)+'%'}}, stroke:{width:1, colors:[css('--surface')]},
+      legend:{show:true, position:'bottom', fontSize:'11px'}, tooltip:{y:{formatter:v=>Math.round(v).toLocaleString('en-US')+' sites'}}});
+    const L = G.filter(g=>g.prem!=null);
+    $('pillPA').innerHTML = statPills(reg(L,'prem','avl')); $('pillPR').innerHTML = statPills(reg(L,'prem','rev'));
+    scatter('chPremA', L, 'prem', 'avl', {h:320}); scatter('chPremR', L, 'prem', 'rev', {h:320});
+
+    // group wise
+    const gl = GROUPS.map(x => ({x, l:G.filter(g=>g.bin===x.k)})).filter(o=>o.l.length);
+    const range = k => { const v=G.map(g=>g[k]); return [Math.min(...v), Math.max(...v)]; };
+    const norm = (k,v) => { const [a,b]=range(k); const z=(v-a)/(b-a)*100; return F[k].good<0 ? 100-z : z; };
+    const gcol = [css('--good'), css('--accent'), css('--warn'), css('--crit')];
+    const cen = k => wavg(G,k);
+    draw('chGroupRadar', {chart:{type:'bar', height:340}, series:gl.map(o=>({name:o.x.n, data:MK.map(k=>+((wavg(o.l,k)/cen(k)-1)*100).toFixed(2))})), colors:gcol.slice(0,gl.length),
+      plotOptions:{bar:{borderRadius:3, columnWidth:'74%'}}, xaxis:{categories:MK.map(k=>F[k].sh), axisBorder:{show:false}, labels:{style:{fontSize:'11px'}}},
+      yaxis:{labels:{formatter:v=>sg(+v,1)+'%'}}, legend:{show:true, position:'top', horizontalAlign:'left'}, annotations:{yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{shared:true, intersect:false, y:{formatter:v=>sg(+v,2)+'% vs Central'}}});
+    $('tblGrp').querySelector('thead').innerHTML = '<tr><th>Group</th><th class="num">Grids</th><th class="num">Sites</th>'+MK.map(k=>'<th class="num">'+F[k].n+'</th>').join('')+'</tr>';
+    $('tblGrp').querySelector('tbody').innerHTML = gl.map(o => '<tr><td><b>'+o.x.n+'</b></td><td class="num mono">'+o.l.length+'</td><td class="num mono">'+sum(o.l,g=>g.sites).toLocaleString('en-US')+'</td>'+MK.map(k=>'<td class="num mono">'+F[k].f(wavg(o.l,k))+'</td>').join('')+'</tr>').join('');
+
+    // grid-wise leaders
+    $('gmChips').innerHTML = '<span class="glab">Measure</span>' + MK.map(k=>'<button class="chip" type="button" data-gm="'+k+'" aria-pressed="'+(state.gm===k)+'" style="--c:var('+F[k].c+')">'+F[k].n+'</button>').join('');
+    const k = state.gm, sorted = vis().filter(g=>g[k]!=null).sort((a,b)=>(b[k]-a[k])*F[k].good);
+    const bar = (id,list,col) => draw(id, {chart:{type:'bar', height:340}, series:[{name:F[k].n, data:list.map(g=>+g[k])}], colors:[col],
+      plotOptions:{bar:{horizontal:true, borderRadius:4, barHeight:'70%'}}, dataLabels:{enabled:true, formatter:v=>F[k].f(+v), style:{fontFamily:css('--mono'), fontSize:'11px'}},
+      xaxis:{categories:list.map(g=>g.name), labels:{formatter:v=>F[k].ax(+v)}, min:k==='avl'?Math.floor(Math.min(...G.map(g=>g.avl))-.5):0}, tooltip:{y:{formatter:v=>F[k].f(+v)}}},
+      {items:[{key:F[k].n, label:F[k].n+(id==='chBest'?' · best 10':' · weakest 10'), color:col, series:[F[k].n]}]});
+    if (!sorted.length) { noData('chBest'); noData('chWorst'); } else { bar('chBest', sorted.slice(0,10), css('--good')); bar('chWorst', sorted.slice(-10).reverse(), css('--serious')); }
+  }
+
+  /* ------------------------------------------------------------ grid actions */
+  function drawAction(){
+    const L = vis();
+    const cnt = {star:0, protect:0, grow:0, fix:0}; L.forEach(g => cnt[quadOf(g)]++);
+    $('quadTiles').innerHTML = Object.keys(QUADS).map(q => '<div class="qt c3 half" style="--c:var('+QUADS[q].c+')"><div class="l">'+QUADS[q].n+'</div><div class="n">'+cnt[q]+'</div><div class="d">'+QUADS[q].d+'</div></div>').join('');
+    if (!L.length) { noData('chQuad'); noData('chGap'); $('tblGrid').querySelector('tbody').innerHTML = ''; return; }
+    const qs = Object.keys(QUADS).filter(q=>L.some(g=>quadOf(g)===q));
+    draw('chQuad', {chart:{type:'scatter', height:400}, series:qs.map(q=>({name:QUADS[q].n, data:L.filter(g=>quadOf(g)===q).map(g=>({x:g.avl, y:g.rev, g:g.name}))})), colors:qs.map(q=>css(QUADS[q].c)),
+      markers:{size:7, strokeWidth:1, strokeColors:css('--surface')}, legend:{show:true, position:'top', horizontalAlign:'left'},
+      xaxis:{type:'numeric', tickAmount:7, title:{text:'Availability %'}, labels:{formatter:v=>(+v).toFixed(1)}}, yaxis:{min:Math.floor(Math.min(...L.map(g=>g.rev))/50000)*50000-50000, title:{text:'Revenue'}, labels:{formatter:v=>F.rev.ax(+v)}},
+      annotations:{xaxis:[{x:MED.avl, borderColor:css('--faint'), strokeDashArray:4}], yaxis:[{y:MED.rev, borderColor:css('--faint'), strokeDashArray:4}]},
+      tooltip:{shared:false, intersect:true, custom:({seriesIndex,dataPointIndex,w})=>{ const p=w.config.series[seriesIndex].data[dataPointIndex]; return '<div style="padding:8px 10px;font-size:12px"><b>'+esc(p.g)+'</b><br>Availability: <b>'+F.avl.f(p.x)+'</b><br>Revenue: <b>'+F.rev.f(p.y)+'</b></div>'; }}});
+    $('gapNote').innerHTML = '<div class="pills"><span class="pill">R² <b>'+(GFIT.r2*100).toFixed(1)+'%</b></span><span class="pill">r <b>'+sg(GFIT.r)+'</b></span><span class="pill">n <b>'+GFIT.n+'</b> grids</span></div>';
+    const gs = L.slice().sort((a,b)=>b.gap-a.gap), pick = gs.length>16 ? gs.slice(0,8).concat(gs.slice(-8)) : gs;
+    draw('chGap', {chart:{type:'bar', height:400}, series:[{name:'Gap', data:pick.map(g=>+g.gap.toFixed(1))}], plotOptions:{bar:{horizontal:true, borderRadius:3, barHeight:'72%', distributed:true}},
+      colors:pick.map(g=>g.gap>=0?css('--s3'):css('--s2')), xaxis:{categories:pick.map(g=>g.name), labels:{formatter:v=>(+v).toFixed(0)+'%'}}, dataLabels:{enabled:true, formatter:v=>sg(v,1)+'%', style:{fontFamily:css('--mono'), fontSize:'10.5px'}},
+      tooltip:{y:{formatter:v=>sg(v,1)+'% vs predicted'}}, annotations:{xaxis:[{x:0, borderColor:css('--faint')}]}},
+      {items:[{key:'up', label:'Above prediction', color:css('--s3')},{key:'dn', label:'Below prediction', color:css('--s2')}], n:pick.length, group:i=>pick[i].gap>=0?'up':'dn'});
+    drawTable(L);
+  }
+  const COLS = [
+    {k:'name', n:'Grid', f:g=>'<b>'+esc(g.name)+'</b>', s:g=>g.name},
+    {k:'region', n:'Sub-region', f:g=>esc(g.region), s:g=>g.region},
+    {k:'sites', n:'Sites', num:1, f:g=>g.sites, s:g=>g.sites},
+    {k:'avl', n:'Avail %', num:1, f:g=>g.avl.toFixed(2), s:g=>g.avl},
+    {k:'ls', n:'LS', num:1, f:g=>g.ls.toFixed(2), s:g=>g.ls},
+    {k:'voice', n:'Voice', num:1, f:g=>g.voice.toFixed(0), s:g=>g.voice},
+    {k:'data', n:'Data', num:1, f:g=>g.data.toFixed(0), s:g=>g.data},
+    {k:'rev', n:'Revenue', num:1, f:g=>F.rev.f(g.rev), s:g=>g.rev},
+    {k:'prem', n:'Premium %', num:1, f:g=>g.prem==null?'–':g.prem.toFixed(0)+'%', s:g=>g.prem==null?-1:g.prem},
+    {k:'gap', n:'Rev vs predicted', num:1, f:g=>'<span class="'+(g.gap>=0?'up':'dn')+'">'+sg(g.gap,1)+'%</span>', s:g=>g.gap},
+    {k:'quad', n:'Action', f:g=>qpill(quadOf(g)), s:g=>quadOf(g)}
+  ];
+  function drawTable(L){
+    L = L || vis();
+    const q = state.q.trim().toLowerCase(), col = COLS.filter(c=>c.k===state.sort.k)[0] || COLS[7];
+    const rows = L.filter(g=>!q || g.name.toLowerCase().indexOf(q)>=0).sort((a,b)=>{ const x=col.s(a), y=col.s(b); return (x<y?-1:x>y?1:0)*state.sort.d; });
+    $('tblGrid').querySelector('thead').innerHTML = '<tr>'+COLS.map(c=>'<th class="'+(c.num?'num':'')+'" data-sort="'+c.k+'">'+c.n+(state.sort.k===c.k?(state.sort.d>0?' ▲':' ▼'):'')+'</th>').join('')+'</tr>';
+    $('tblGrid').querySelector('tbody').innerHTML = rows.map(g=>'<tr>'+COLS.map(c=>'<td class="'+(c.num?'num mono':'')+'">'+c.f(g)+'</td>').join('')+'</tr>').join('') || '<tr><td colspan="'+COLS.length+'"><div class="empty">No grid matches.</div></td></tr>';
+  }
+
+  /* ================================================================ IMPACT: cause -> effect */
+  const IM = {c:'avl', e:'rev', basis:'within', d:null};
+  const crit = df => 1.96 + 2.5/df + 3/(df*df);
+  function ols(x,y,df){
+    const n=x.length; if(n<5) return null;
+    const mx=mean(x), my=mean(y); let sxx=0,sxy=0,syy=0;
+    for(let i=0;i<n;i++){ const a=x[i]-mx, b=y[i]-my; sxx+=a*a; sxy+=a*b; syy+=b*b; }
+    if(!sxx || !syy) return null;
+    const m=sxy/sxx, r=sxy/Math.sqrt(sxx*syy); df = df>0 ? df : n-2;
+    const s=Math.sqrt(Math.max(0,syy-m*sxy)/df), se=s/Math.sqrt(sxx), cr=crit(df);
+    return {n, m, b:my-m*mx, r, r2:r*r, se, s, sxx, mx, my, ci:[m-cr*se, m+cr*se], cr, sig:Math.abs(m/se)>cr};
+  }
+  function pairAvg(g,xk,yk){
+    const a=g[F[xk].t], b=g[F[yk].t]; if(!a||!b) return null; const X=[],Y=[];
+    for(let i=0;i<Math.min(a.length,b.length);i++) if(a[i]!=null && b[i]!=null){ X.push(+a[i]); Y.push(+b[i]); }
+    return X.length>=3 ? {x:mean(X), y:mean(Y)} : null;
+  }
+  function cross(list,xk,yk){
+    const pts=[]; list.forEach(g => { const p=pairAvg(g,xk,yk); if(p) pts.push({x:p.x, y:p.y, g:g.name, s:g.sites, region:g.region}); });
+    const st = ols(pts.map(p=>p.x), pts.map(p=>p.y)); return st ? Object.assign(st,{pts}) : null;
+  }
+  /* within-grid: every grid is compared with its own average, so size / tier / location differences drop out */
+  function panel(list,xk,yk,lag){
+    const X=[],Y=[]; let grp=0; const A=F[xk].t, B=F[yk].t, ox=Math.max(0,-lag), oy=Math.max(0,lag);
+    list.forEach(g => {
+      const a=g[A], b=g[B]; if(!a||!b) return; const px=[], py=[];
+      for(let i=0; i+ox<a.length && i+oy<b.length; i++){ const u=a[i+ox], v=b[i+oy]; if(u!=null && v!=null){ px.push(+u); py.push(+v); } }
+      if(px.length>=4){ const mx=mean(px), my=mean(py); px.forEach((u,i)=>{ X.push(u-mx); Y.push(py[i]-my); }); grp++; }
+    });
+    const st = ols(X,Y,X.length-grp-1); return st ? Object.assign(st,{grids:grp}) : null;
+  }
+  function trendOf(arr,last){
+    const pts=[]; for(let i=Math.max(0,arr.length-last); i<arr.length; i++) if(arr[i]!=null) pts.push([i,+arr[i]]);
+    if(pts.length<4) return null; const st=ols(pts.map(p=>p[0]), pts.map(p=>p[1])); return st ? {m:st.m, mean:mean(pts.map(p=>p[1]))} : null;
+  }
+  const quant = (a,p) => { const s=[...a].sort((x,y)=>x-y), i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); };
+  const fBig = v => { const a=Math.abs(v); return (v<0?'−':'') + (a>=1e6 ? (a/1e6).toFixed(2)+'M' : a>=1e3 ? (a/1e3).toFixed(1)+'K' : a.toFixed(a<10?2:0)); };
+  const sgn2 = (k,v) => (v>0?'+':v<0?'−':'') + fD(k,Math.abs(v));
+  const LAGS = [-2,-1,0,1,2];
+  const strengthWord = r => { const a=Math.abs(r); return a>=.7?'strong':a>=.4?'moderate':a>=.2?'weak':'very weak'; };
+
+  function impNoData(msg){
+    $('impHero').innerHTML = '<div class="empty">'+msg+'</div>'; $('impInsights').innerHTML = '';
+    ['chImpScatter','chImpResp','chImpLag','chImpIdx','chImpDrv','chImpMom','chImpQuad','chImpTree'].forEach(noData);
+  }
+
+  function drawImpact(){
+    const L = vis(), c = IM.c, e = IM.e, C = F[c], E = F[e], col1 = css(C.c), col2 = css(E.c);
+    $('selC').value = c; $('selE').value = e;
+    document.querySelectorAll('[data-ib]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ib===IM.basis));
+    if (c===e) return impNoData('Pick two different measures: one as the cause, one as the effect.');
+    if (L.length < 6) return impNoData('Select at least 6 grids (current filters leave '+L.length+') for a meaningful analysis.');
+    const X = cross(L,c,e), W = panel(L,c,e,0);
+    if (!X && !W) return impNoData('Not enough data for this pair.');
+    const lagR = LAGS.map(k => panel(L,c,e,k));
+    let bestI = -1; lagR.forEach((s,i) => { if (s && (bestI<0 || Math.abs(s.r) > Math.abs(lagR[bestI].r))) bestI = i; });
+    const best = bestI>=0 ? lagR[bestI] : null, bestLag = bestI>=0 ? LAGS[bestI] : 0;
+    const S = IM.basis==='within' ? (W||X) : (X||W), Sname = S===W ? 'within-grid' : 'cross-grid';
+    const step = C.step, perStep = S.m*step, ciStep = [S.ci[0]*step, S.ci[1]*step];
+    const lead = Math.max(...[-2,-1].map(k => { const s=lagR[LAGS.indexOf(k)]; return s ? Math.abs(s.r) : 0; }));
+    const lag0 = Math.abs((lagR[2]||{r:0}).r), follow = Math.max(...[1,2].map(k => { const s=lagR[LAGS.indexOf(k)]; return s ? Math.abs(s.r) : 0; }));
+
+    /* network series (site-weighted) */
+    const net = k => M.map((_,i) => wm(L,F[k].t,i));
+    const sC = net(c), sE = net(e);
+    const mom = s => s.map((v,i) => (i && v!=null && s[i-1]!=null && s[i-1]!==0) ? (v/s[i-1]-1)*100 : null);
+    const mC = mom(sC), mE = mom(sE); let same=0, both=0;
+    mC.forEach((v,i) => { if (v!=null && mE[i]!=null && v!==0 && mE[i]!==0){ both++; if ((v>0)===(mE[i]>0)) same++; } });
+    const expectSame = S.m>0;
+    const agree = expectSame ? same : both-same;
+
+    /* ---------- hero verdict ---------- */
+    const rW = W ? W.r : null, rX = X ? X.r : null;
+    const sigW = W && W.sig, sigX = X && X.sig, signSame = W && X && (W.m>0)===(X.m>0);
+    let vTitle, vCls;
+    if (sigW && sigX && signSame && Math.max(Math.abs(rW),Math.abs(rX))>=.3){ vTitle='Consistent link'; vCls='--good'; }
+    else if (sigW || sigX){ vTitle='Partial evidence'; vCls='--warn'; }
+    else { vTitle='No reliable link'; vCls='--faint'; }
+    const tile = (l,v,s,c2) => '<div class="imp-stat" style="--c:var('+(c2||'--accent')+')"><span class="l">'+l+'</span><span class="v">'+v+'</span><span class="s">'+s+'</span></div>';
+    $('impHero').style.setProperty('--c1', col1); $('impHero').style.setProperty('--c2', col2);
+    $('impHero').innerHTML =
+      '<div class="imp-left"><div class="imp-flow"><span class="imp-node" style="--c:'+col1+'">'+esc(C.n)+'</span><svg width="34" height="18" viewBox="0 0 34 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9h28M23 3l7 6-7 6"/></svg><span class="imp-node" style="--c:'+col2+'">'+esc(E.n)+'</span></div>'
+      + '<div class="imp-verdict" style="--v:var('+vCls+')"><i></i>'+vTitle+'</div>'
+      + '<div class="imp-meta">'+L.length+' grids · '+sum(L,g=>g.sites).toLocaleString('en-US')+' sites · '+M[0]+'–'+M[M.length-1]+'</div></div>'
+      + '<div class="imp-stats">'
+      + tile('Between grids', X ? sg(X.r,2) : '–', X ? 'R² '+(X.r2*100).toFixed(0)+'% · '+strengthWord(X.r)+(X.sig?'':' · not significant') : 'n/a', '--s1')
+      + tile('Inside each grid', W ? sg(W.r,2) : '–', W ? 'R² '+(W.r2*100).toFixed(0)+'% · '+strengthWord(W.r)+(W.sig?'':' · not significant') : 'n/a', '--s3')
+      + tile('Per '+C.stepL+' of '+C.sh, sgn2(e,perStep), Sname+' · 95% range '+sgn2(e,Math.min(...ciStep))+' to '+sgn2(e,Math.max(...ciStep)), '--s5')
+      + tile('Direction match', both ? agree+' / '+both : '–', both ? 'months · '+(expectSame?'together':'oppositely') : 'n/a', '--s4')
+      + '</div>';
+
+    /* ---------- driver ranking ---------- */
+    const drivers = MK.filter(k => k!==e).map(k => ({k, w:panel(L,k,e,0), x:cross(L,k,e)})).filter(d => d.w || d.x)
+      .sort((a,b) => Math.abs(b.w?b.w.r:0) - Math.abs(a.w?a.w.r:0));
+    const top = drivers[0];
+
+    /* ---------- insight cards ---------- */
+    const cards = [];
+    cards.push({c:col1, t:'Size of the effect', v:sgn2(e,perStep)+' '+E.sh, s:'95% '+sgn2(e,Math.min(...ciStep))+' to '+sgn2(e,Math.max(...ciStep))});
+    if (top) cards.push({c:css(F[top.k].c), t:'Biggest lever', v:F[top.k].n, s:'in '+(top.w?sg(top.w.r,2):'–')+' · between '+(top.x?sg(top.x.r,2):'–')});
+    if (best) cards.push({c:'#7C6CFF', t:'Timing', v:bestLag===0 ? 'Same month' : bestLag>0 ? C.sh+' leads '+bestLag+' mo' : E.sh+' leads '+(-bestLag)+' mo', s:'r '+sg(best.r,2)});
+    const trC = L.map(g => trendOf(g[C.t],6)), trE = L.map(g => trendOf(g[E.t],6));
+    let up=0, dn=0, tot=0; L.forEach((g,i) => { if (trC[i] && trE[i]){ tot++; const gc=trC[i].m*C.good, ge=trE[i].m*E.good; if (gc>0 && ge>0) up++; else if (gc<0 && ge<0) dn++; } });
+    cards.push({c:css('--serious'), t:'Momentum · 6 months', v:up+' ↑ · '+dn+' ↓', s:'of '+tot+' grids'});
+    $('impInsights').innerHTML = cards.map(x => '<div class="mc" style="--c:'+x.c+'"><span class="l">'+esc(x.t)+'</span><span class="v">'+esc(x.v)+'</span><span class="s">'+esc(x.s)+'</span></div>').join('');
+
+    /* ---------- 1. scatter with confidence band ---------- */
+    if (X){
+      const names = REGN.filter(n => X.pts.some(p=>p.region===n));
+      const xs = X.pts.map(p=>p.x), x0=Math.min(...xs), x1=Math.max(...xs), pad=(x1-x0)*.06||1;
+      const grid = Array.from({length:24},(_,i) => x0-pad + (x1-x0+2*pad)*i/23);
+      const fit = v => X.m*v+X.b, band = v => X.cr*X.s*Math.sqrt(1/X.n + (v-X.mx)*(v-X.mx)/X.sxx);
+      const series = names.map(n => ({name:n, type:'scatter', data:X.pts.filter(p=>p.region===n).map(p=>({x:p.x,y:p.y,g:p.g,s:p.s}))}))
+        .concat([{name:'Fit', type:'line', data:grid.map(v=>({x:v,y:fit(v)}))},{name:'95% upper', type:'line', data:grid.map(v=>({x:v,y:fit(v)+band(v)}))},{name:'95% lower', type:'line', data:grid.map(v=>({x:v,y:fit(v)-band(v)}))}]);
+      const k = names.length;
+      draw('chImpScatter', {
+        chart:{type:'line', height:380}, series,
+        colors:names.map(regCol).concat([css('--fg'), css('--faint'), css('--faint')]),
+        stroke:{width:names.map(()=>0).concat([2.5,1,1]), dashArray:names.map(()=>0).concat([0,5,5]), curve:'smooth'},
+        markers:{size:names.map(()=>7).concat([0,0,0]), strokeWidth:2, strokeColors:css('--surface'), hover:{sizeOffset:3}},
+        xaxis:{type:'numeric', min:x0-pad, max:x1+pad, tickAmount:7, title:{text:C.n+' (avg over months)'}, labels:{formatter:v=>C.ax(+v)}, axisBorder:{show:false}},
+        yaxis:{title:{text:E.n}, labels:{formatter:v=>E.ax(+v)}},
+        tooltip:{shared:false, intersect:true, custom:({seriesIndex,dataPointIndex,w}) => { const d=w.config.series[seriesIndex].data[dataPointIndex]; if(!d || !d.g) return '';
+          return '<div class="tt"><b>'+esc(d.g)+'</b><br>'+C.sh+': '+C.f(d.x)+'<br>'+E.sh+': '+E.f(d.y)+'<br><span>'+d.s+' sites</span></div>'; }}
+      }, {items:names.map(n=>({key:n, label:n, color:regCol(n), shape:'dot', series:[n]})).concat([
+          {key:'Fit', label:'Fit', color:css('--fg'), shape:'line', series:['Fit']},
+          {key:'band', label:'95% band', color:css('--faint'), shape:'dash', series:['95% upper','95% lower']}])});
+    } else noData('chImpScatter');
+
+    /* ---------- 2. what-if simulator ---------- */
+    const range = step, sl = $('whatSlider');
+    sl.min = -range; sl.max = range; sl.step = range/40;
+    if (IM.d==null || Math.abs(IM.d)>range) IM.d = range/2;
+    sl.value = IM.d;
+    IM.ctx = {L, S, Sname};
+    drawWhat(L, S, Sname);
+
+    /* ---------- 3. lag chart ---------- */
+    const lagCats = ['−2 mo','−1 mo','Same month','+1 mo','+2 mo'];
+    const lagPts = lagR.map((s,i) => ({x:lagCats[i], y:s ? +s.r.toFixed(3) : null, n:s ? s.n : null}));
+    draw('chImpLag', {
+      chart:{type:'bar', height:290}, series:[{name:'Inside-grid r', data:lagPts}],
+      colors:lagPts.map((p,i) => (p.y!=null && p.y<0 ? css('--s2') : css('--s3')) + (i===bestI ? '' : '88')),
+      plotOptions:{bar:{distributed:true, borderRadius:8, columnWidth:'52%', borderRadiusApplication:'end'}},
+      dataLabels:{enabled:true, formatter:v=>v==null?'':sg(v,2), style:{fontSize:'11px', fontFamily:css('--mono'), colors:[css('--fg')]}, background:{enabled:false}, dropShadow:{enabled:false}, offsetY:-20},
+      xaxis:{type:'category', title:{text:'Offset: + means '+C.sh+' moves first, − means '+E.sh+' moves first'}, axisBorder:{show:false}},
+      yaxis:{min:-1, max:1, tickAmount:4, labels:{formatter:v=>(+v).toFixed(1)}},
+      annotations:{yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{y:{formatter:(v,o) => { const d=o.w.config.series[0].data[o.dataPointIndex]; return sg(v,3)+(d && d.n ? ' · n='+d.n : ''); }}}
+    }, {items:[{key:'pos', label:'Positive r', color:css('--s3')},{key:'neg', label:'Negative r', color:css('--s2')}], n:lagPts.length, group:i => (lagPts[i].y!=null && lagPts[i].y<0) ? 'neg' : 'pos'});
+
+    /* ---------- 4. indexed trend of everything ---------- */
+    const idx = k => { const s=net(k), b=s.find(v=>v!=null); return s.map(v => v==null||!b ? null : +(v/b*100).toFixed(2)); };
+    draw('chImpIdx', {
+      chart:{type:'line', height:290}, series:MK.map(k => ({name:F[k].n, data:idx(k)})),
+      colors:MK.map(k => css(F[k].c)), stroke:{width:MK.map(k => k===c||k===e ? 4 : 1.6), curve:'smooth', dashArray:MK.map(k => k===c||k===e ? 0 : 4)},
+      markers:{size:MK.map(k => k===c||k===e ? 4 : 0), strokeWidth:0},
+      xaxis:{categories:M, axisBorder:{show:false}}, yaxis:{labels:{formatter:v=>(+v).toFixed(1)}, title:{text:M[0]+' = 100'}},
+      legend:{show:true, position:'top', horizontalAlign:'left'}, tooltip:{shared:true, intersect:false, y:{formatter:v=>v==null?'–':v.toFixed(1)}}
+    });
+
+    /* ---------- 5. driver ranking ---------- */
+    draw('chImpDrv', {
+      chart:{type:'bar', height:290}, series:[{name:'Inside each grid (monthly)', data:drivers.map(d=>d.w?+d.w.r.toFixed(2):0)},{name:'Between grids (YTD avg)', data:drivers.map(d=>d.x?+d.x.r.toFixed(2):0)}],
+      colors:[css('--s3'), css('--s1')], plotOptions:{bar:{horizontal:true, borderRadius:6, barHeight:'62%', dataLabels:{position:'top'}}},
+      dataLabels:{enabled:true, formatter:v=>sg(v,2), style:{fontSize:'10.5px', fontFamily:css('--mono'), colors:[css('--fg')]}, background:{enabled:false}, dropShadow:{enabled:false}, offsetX:26},
+      xaxis:{categories:drivers.map(d=>F[d.k].n), min:-1, max:1, tickAmount:4, labels:{formatter:v=>(+v).toFixed(1)}},
+      legend:{show:true, position:'top', horizontalAlign:'left'}, tooltip:{y:{formatter:v=>'r = '+sg(v,2)}}
+    });
+
+    /* ---------- 6. month-over-month moves ---------- */
+    draw('chImpMom', {
+      chart:{type:'line', height:290}, series:[{name:C.n+' Δ%', type:'column', data:mC.map(v=>v==null?null:+v.toFixed(2))},{name:E.n+' Δ%', type:'line', data:mE.map(v=>v==null?null:+v.toFixed(2))}],
+      colors:[col1+'cc', col2], stroke:{width:[0,3.5], curve:'smooth'}, markers:{size:[0,5], strokeWidth:2, strokeColors:css('--surface')},
+      plotOptions:{bar:{borderRadius:6, columnWidth:'46%'}},
+      xaxis:{categories:M, axisBorder:{show:false}},
+      yaxis:[{title:{text:C.sh+' Δ% vs previous month', style:{color:col1}}, labels:{formatter:v=>(+v).toFixed(2)+'%'}},{opposite:true, title:{text:E.sh+' Δ%', style:{color:col2}}, labels:{formatter:v=>(+v).toFixed(1)+'%'}}],
+      legend:{show:true, position:'top', horizontalAlign:'left'}, annotations:{yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{shared:true, intersect:false, y:{formatter:v=>v==null?'–':sg(v,2)+'%'}}
+    });
+
+    /* ---------- 7. momentum quadrant ---------- */
+    const cls = [{n:'Both rising',c:css('--s1')},{n:'Both falling',c:css('--crit')},{n:C.sh+' ↑  '+E.sh+' ↓',c:css('--warn')},{n:C.sh+' ↓  '+E.sh+' ↑',c:'#7C6CFF'}];
+    const mser = cls.map(() => []);
+    L.forEach((g,i) => { const a=trC[i], b=trE[i]; if(!a||!b) return; const ex=b.m/b.mean*100, ix = a.m>=0 ? (ex>=0?0:2) : (ex>=0?3:1); mser[ix].push({x:+a.m.toFixed(4), y:+ex.toFixed(3), g:g.name, s:g.sites}); });
+    if (mser.some(a=>a.length)) draw('chImpQuad', {
+      chart:{type:'scatter', height:340}, series:cls.map((q,i)=>({name:q.n, data:mser[i]})), colors:cls.map(q=>q.c),
+      markers:{size:8, strokeWidth:2, strokeColors:css('--surface'), hover:{sizeOffset:3}},
+      xaxis:{type:'numeric', tickAmount:7, title:{text:C.n+' trend per month'}, labels:{formatter:v=>(+v).toFixed(C.step>=100?0:2)}, axisBorder:{show:false}},
+      yaxis:{title:{text:E.n+' trend, % per month'}, labels:{formatter:v=>(+v).toFixed(1)+'%'}},
+      annotations:{xaxis:[{x:0, borderColor:css('--faint'), strokeDashArray:4}], yaxis:[{y:0, borderColor:css('--faint'), strokeDashArray:4}]},
+      legend:{show:true, position:'top', horizontalAlign:'left'},
+      tooltip:{custom:({seriesIndex,dataPointIndex,w}) => { const d=w.config.series[seriesIndex].data[dataPointIndex]; return '<div class="tt"><b>'+esc(d.g)+'</b><br>'+C.sh+': '+sg(d.x,C.step>=100?0:3)+' / month<br>'+E.sh+': '+sg(d.y,2)+'% / month</div>'; }}
+    }); else noData('chImpQuad');
+
+    /* ---------- 8. uplift potential treemap ---------- */
+    const vals = L.map(g => pairAvg(g,c,c)).filter(Boolean).map(p=>p.x);
+    const goalV = quant(vals, C.good>0 ? .75 : .25);
+    const upl = L.map(g => { const p=pairAvg(g,c,c); if(!p) return null; const dl = goalV - p.x; if (dl*C.good<=0) return null; const per = S.m*dl; return {g, dl, per, tot:per*g.sites}; })
+      .filter(o => o && o.tot>0).sort((a,b)=>b.tot-a.tot).slice(0,16);
+    const treeRegs = REGN.filter(n => upl.some(o => o.g.region===n));
+    if (upl.length) draw('chImpTree', {
+      chart:{type:'treemap', height:340}, series:[{data:upl.map(o => ({x:o.g.name, y:+o.tot.toFixed(2), per:o.per, dl:o.dl}))}],
+      colors:upl.map(o => regCol(o.g.region)), plotOptions:{treemap:{distributed:true, enableShades:false, borderRadius:6}},
+      dataLabels:{enabled:true, style:{fontSize:'12px', fontWeight:600}, formatter:(t,o) => { const d=o.w.config.series[o.seriesIndex].data[o.dataPointIndex]; return t+'  '+sgn2(e,d.per); }},
+      stroke:{width:2, colors:[css('--surface')]},
+      tooltip:{y:{formatter:(v,o) => { const d=o.w.config.series[o.seriesIndex].data[o.dataPointIndex]; return 'Close '+sgn2(c,d.dl)+' '+C.sh+' → '+sgn2(e,d.per)+' per site'; }}}
+    }, {items:treeRegs.map(n => ({key:n, label:n, color:regCol(n)})), n:upl.length, group:i => upl[i].g.region}); else { noData('chImpTree'); }
+  }
+
+  function drawWhat(L, S, Sname){
+    const c=IM.c, e=IM.e, C=F[c], E=F[e], d=+IM.d, per=S.m*d, lo=Math.min(S.ci[0]*d,S.ci[1]*d), hi=Math.max(S.ci[0]*d,S.ci[1]*d);
+    const sites = sum(L,g=>g.sites), perSiteMeasure = (e==='rev'||e==='voice'||e==='data');
+    $('whatVal').textContent = sgn2(c,d)+' '+C.sh;
+    $('whatOut').innerHTML =
+      '<div class="imp-stat" style="--c:var('+E.c+')"><span class="l">Per site</span><span class="v">'+sgn2(e,per)+'</span><span class="s">95% range '+sgn2(e,lo)+' to '+sgn2(e,hi)+'</span></div>'
+      + '<div class="imp-stat" style="--c:var('+E.c+')"><span class="l">'+(perSiteMeasure ? 'Network total' : 'Network average')+'</span><span class="v">'+(perSiteMeasure ? (per>=0?'+':'−')+fBig(Math.abs(per*sites)) : sgn2(e,per))+'</span><span class="s">'+(perSiteMeasure ? 'all '+sites.toLocaleString('en-US')+' sites · per month' : 'site-weighted')+'</span></div>';
+    const R0 = +$('whatSlider').max, pts = Array.from({length:41},(_,i) => -R0 + 2*R0*i/40);
+    draw('chImpResp', {
+      chart:{type:'area', height:210}, series:[{name:'Estimate', data:pts.map(v=>({x:v,y:S.m*v}))},{name:'95% upper', data:pts.map(v=>({x:v,y:Math.max(S.ci[0]*v,S.ci[1]*v)}))},{name:'95% lower', data:pts.map(v=>({x:v,y:Math.min(S.ci[0]*v,S.ci[1]*v)}))}],
+      colors:[css(E.c), css('--faint'), css('--faint')], stroke:{width:[3,1,1], dashArray:[0,5,5], curve:'straight'},
+      fill:{type:['gradient','solid','solid'], opacity:[1,0,0], gradient:{shadeIntensity:1, opacityFrom:.35, opacityTo:.02, stops:[0,100]}},
+      xaxis:{type:'numeric', tickAmount:4, labels:{formatter:v=>(+v>0?'+':'')+C.ax(+v).replace('%','')}, title:{text:'Change in '+C.sh}, axisBorder:{show:false}},
+      yaxis:{labels:{formatter:v=>E.ax(+v)}, title:{text:'Change in '+E.sh+' / site'}},
+      annotations:{xaxis:[{x:d, borderColor:css(C.c), strokeDashArray:0, label:{text:sgn2(c,d), orientation:'horizontal', borderWidth:0, style:{color:'#fff', background:css(C.c), fontSize:'11px'}}}], yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{shared:true, intersect:false, x:{formatter:v=>sgn2(c,v)}, y:{formatter:v=>sgn2(e,v)}}
+    }, {items:[{key:'est', label:'Estimate', color:css(E.c), shape:'line', series:['Estimate']},{key:'band', label:'95% range', color:css('--faint'), shape:'dash', series:['95% upper','95% lower']}]});
+  }
+
+  /* impact controls */
+  MK.forEach(k => { ['selC','selE'].forEach(id => { const o=document.createElement('option'); o.value=k; o.textContent=F[k].n; $(id).appendChild(o); }); });
+  $('selC').addEventListener('change', e => { IM.c = e.target.value; IM.d = null; drawImpact(); });
+  $('selE').addEventListener('change', e => { IM.e = e.target.value; IM.d = null; drawImpact(); });
+  $('swapCE').addEventListener('click', () => { const t=IM.c; IM.c=IM.e; IM.e=t; IM.d=null; drawImpact(); });
+  document.querySelectorAll('[data-ib]').forEach(b => b.addEventListener('click', () => { IM.basis=b.dataset.ib; IM.d=null; drawImpact(); }));
+  let whatRaf = 0;
+  $('whatSlider').addEventListener('input', e => { IM.d = +e.target.value; if (!IM.ctx) return; cancelAnimationFrame(whatRaf); whatRaf = requestAnimationFrame(() => drawWhat(IM.ctx.L, IM.ctx.S, IM.ctx.Sname)); });
+
+  /* --------------------------------------------------------------- navigation */
+  const TABS = ['overview','impact','pairs','break','action'];
+  function setTab(t){
+    state.tab = t;
+    TABS.forEach(x => { $('p-'+x).hidden = x!==t; });
+    document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.t===t));
+    try { history.replaceState(null,'','#'+t); } catch(e){}
+    drawTab();
+  }
+  function drawTab(){
+    if (state.tab==='overview') drawOverview();
+    else if (state.tab==='impact') drawImpact();
+    else if (state.tab==='pairs') drawPairs();
+    else if (state.tab==='break') drawBreak();
+    else if (state.tab==='action') drawAction();
+  }
+  function renderAll(){ drawFilters(); drawKpis(); drawTab(); }
+
+  $('tabs').addEventListener('click', e => { const b=e.target.closest('.tab'); if (b) setTab(b.dataset.t); });
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-region],[data-group],[data-gm],[data-sm],[data-sort]'); if (!c) return;
+    if (c.dataset.region) { state.region = c.dataset.region; renderAll(); }
+    else if (c.dataset.group) { state.group = c.dataset.group; renderAll(); }
+    else if (c.dataset.gm) { state.gm = c.dataset.gm; drawBreak(); }
+    else if (c.dataset.sort) { const k=c.dataset.sort; state.sort = {k, d: state.sort.k===k ? -state.sort.d : (k==='name'||k==='region'||k==='quad' ? 1 : -1)}; drawTable(); }
+  });
+  $('selX').addEventListener('change', e => { state.cx = e.target.value; drawCustom(); });
+  $('selY').addEventListener('change', e => { state.cy = e.target.value; drawCustom(); });
+  $('q').addEventListener('input', e => { state.q = e.target.value; drawTable(); });
+  new MutationObserver(()=>{ renderAll(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});   /* site theme toggle changes data-theme */
+  window.addEventListener('hashchange', () => { const h=(location.hash||'').replace('#',''); if (TABS.indexOf(h)>=0 && h!==state.tab) setTab(h); });
+
+  const h0 = (location.hash||'').replace('#','');
+  if (TABS.indexOf(h0)>=0) state.tab = h0;
+  TABS.forEach(x => { $('p-'+x).hidden = x!==state.tab; });
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.t===state.tab));
+  renderAll();
+})();
+</script>
+{% include "grid_report/_fs.html" %}
+</body>
+</html>

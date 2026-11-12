@@ -1,0 +1,1686 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grid Excellence - One-Page Dashboard</title>
+{% include "site/_art.html" %}<script src="{% static 'site/js/theme.js' %}"></script>
+<style>
+
+/* Layout: sticky command bar (tabs + cross-filters) > 4 tab panels of KPI cards and charts; grid drill-down drawer. Dark-first, gradient cards. */
+:root{
+  --bg:#0A0F1C; --surface:#111A2E; --surface2:#16213A; --line:#243352;
+  --fg:#E8EDF8; --muted:#93A3C2; --faint:#62749B;
+  --accent:#3987e5; --accent-2:#7C6CFF;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --font:Calibri,Carlito,'Segoe UI',Arial,sans-serif;
+  --mono:Calibri,Carlito,'Segoe UI',Arial,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F2F5FA; --surface:#FFFFFF; --surface2:#F6F8FC; --line:#DDE4F0;
+    --fg:#0E1A33; --muted:#4E5F7D; --faint:#8795AF; --accent:#2a78d6; --accent-2:#6250d6;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+    --shadow:0 8px 24px rgba(20,40,90,.10); color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F2F5FA; --surface:#FFFFFF; --surface2:#F6F8FC; --line:#DDE4F0;
+  --fg:#0E1A33; --muted:#4E5F7D; --faint:#8795AF; --accent:#2a78d6; --accent-2:#6250d6;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+  --shadow:0 8px 24px rgba(20,40,90,.10); color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.45;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;
+  background-image:radial-gradient(900px 400px at 10% -10%,color-mix(in srgb,var(--accent) 16%,transparent),transparent),radial-gradient(700px 340px at 96% 0%,color-mix(in srgb,var(--accent-2) 12%,transparent),transparent);
+  background-repeat:no-repeat;background-attachment:fixed}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* command bar */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.row1{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
+.brand h1{font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.brand small{color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tab{border:0;background:transparent;color:var(--muted);padding:7px 16px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+.tools{display:flex;gap:8px;align-items:center}
+.iconbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;height:36px;min-width:36px;padding:0 11px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;justify-content:center;color:var(--muted)}
+.iconbtn:hover{color:var(--fg);border-color:var(--faint)}
+.row2{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.glab{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--faint);font-weight:700;margin-right:2px}
+.chip{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 11px;cursor:pointer;font-size:12.5px;font-weight:500;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.chip:hover{color:var(--fg);border-color:var(--faint)}
+.chip[aria-pressed="true"]{background:color-mix(in srgb,var(--c,var(--accent)) 22%,transparent);border-color:var(--c,var(--accent));color:var(--fg)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+.sep{width:1px;height:20px;background:var(--line)}
+.field{background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:10px;height:32px;padding:0 10px;font:inherit;font-size:13px;width:150px}
+.field::placeholder{color:var(--faint)}
+.count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.reset{color:var(--fg);border-color:var(--faint)}
+
+/* KPI cards */
+[hidden]{display:none!important}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:460px){.kpis{grid-template-columns:minmax(0,1fr)}}
+.kpi{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));border-radius:16px;padding:14px 16px 10px;min-width:0;display:flex;flex-direction:column;gap:2px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--c) 26%,var(--surface)),var(--surface) 72%);box-shadow:var(--shadow)}
+.kpi .lab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.kpi .val{font-family:var(--mono);font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+.kpi .val small{font-size:15px;color:var(--muted);font-weight:500}
+.kpi .sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.kpi .sp{height:46px;margin:2px -6px -4px}
+.kpi .mini{height:6px;margin-top:10px}
+.up{color:var(--good)} .dn{color:var(--crit)}
+.delta{font-family:var(--mono);font-weight:600}
+
+/* panels */
+.panel{display:flex;flex-direction:column;gap:16px}
+.grid12{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+@media (max-width:1100px){.c3,.c4,.c5,.c6,.c7,.c8{grid-column:span 12}.c3.half,.c4.half{grid-column:span 6}}
+@media (max-width:640px){.c3.half,.c4.half{grid-column:span 12}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.card>h2{font-size:14px;font-weight:650;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.card>h2 em{font-style:normal;font-size:11.5px;color:var(--faint);font-weight:500;font-family:var(--mono)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);font-weight:400}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.duo h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);text-align:center;font-weight:700}
+
+/* pills */
+.pill{--c:var(--accent);display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;
+  background:color-mix(in srgb,var(--c) 16%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);color:var(--fg)}
+.pill b{color:var(--c);font-weight:800}
+
+/* leaderboard */
+.lb{display:flex;flex-direction:column;gap:6px}
+.lbr{display:grid;grid-template-columns:26px 54px 1fr 50px 58px;gap:10px;align-items:center;padding:6px 8px;border-radius:10px;cursor:pointer;border:1px solid transparent;font-size:13px;background:var(--surface2)}
+.lbr:hover{border-color:var(--faint)}
+.lbr .n{color:var(--faint);font-family:var(--mono);font-size:12px}
+.track{position:relative;height:8px;background:var(--bg);border:1px solid var(--line);border-radius:5px}
+.track i{position:absolute;inset:0 auto 0 0;border-radius:4px 3px 3px 4px}
+.track u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg);opacity:.5;border-radius:1px}
+
+/* grid wall */
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.tile{--c:var(--accent);text-align:left;cursor:pointer;border:1px solid color-mix(in srgb,var(--c) 50%,var(--line));border-radius:12px;padding:9px 10px;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--c) 26%,var(--surface)),var(--surface) 80%);display:flex;flex-direction:column;gap:1px}
+.tile:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.tile b{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:500}
+.tile .s{font-family:var(--mono);font-size:21px;font-weight:600;line-height:1.15}
+.tile .d{font-family:var(--mono);font-size:11.5px}
+@media (prefers-reduced-motion: no-preference){.tile{transition:transform .15s,box-shadow .15s}}
+
+/* tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+thead th{position:sticky;top:0;background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;z-index:1}
+thead th:hover{color:var(--fg)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover td{background:var(--surface2)}
+td.num,th.num{text-align:right}
+.sbar{display:flex;align-items:center;gap:10px;min-width:170px}
+.sbar .track{flex:1}
+.sbar .n{width:48px;text-align:right}
+.scroll{max-height:560px;overflow:auto}
+.heat td,.heat th{text-align:center;padding:5px 8px}
+.heat td:first-child,.heat th:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--line)}
+.heat thead th:first-child{background:var(--surface2);z-index:2}
+.heat td.c{font-family:var(--mono);font-size:12px;min-width:44px;background:color-mix(in srgb,var(--h) var(--a),var(--surface))}
+.heat tr.row:hover td.c{filter:brightness(1.12)}
+.heat .gp{font-size:10px;letter-spacing:.1em;color:var(--faint);cursor:default}
+.empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(3,8,20,.55);z-index:40;display:none}
+.scrim.on{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(600px,100%);background:var(--bg);border-left:1px solid var(--line);z-index:50;transform:translateX(102%);visibility:hidden;
+  display:flex;flex-direction:column;box-shadow:var(--shadow);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.on{transform:none;visibility:visible}
+@media (prefers-reduced-motion: no-preference){.drawer{transition:transform .25s ease,visibility .25s}}
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px max(16px,env(safe-area-inset-right,0px)) 12px 16px;border-bottom:1px solid var(--line)}
+.dbody{overflow:auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 32px 16px;display:flex;flex-direction:column;gap:14px}
+.dtitle{font-size:22px;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.stat .v{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.1}
+.stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.comp{display:grid;grid-template-columns:140px 1fr 72px;gap:10px;align-items:center;font-size:12.5px;padding:4px 0}
+.comp .track{height:10px}
+.k10{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.k10 div{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;gap:1px}
+.k10 b{font-family:var(--mono);font-size:15px;color:var(--fg);font-weight:600}
+.mix{display:grid;grid-template-columns:80px 1fr 36px;gap:8px;align-items:center;font-size:12px;color:var(--muted);padding:2px 0}
+.mix .track i{background:var(--accent)}
+.toggle{display:inline-flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);cursor:pointer}
+.foot{color:var(--faint);font-size:11.5px;text-align:center}
+@media (max-width:560px){.comp{grid-template-columns:104px 1fr 62px}.kpi .val{font-size:27px}.sep{display:none}.field{width:100%}.count{margin-left:0}}
+
+</style>
+<style>
+/* ===== analysis styles, scoped to #aRoot ===== */
+#aRoot .wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:16px;padding-top:16px}
+#aRoot .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#aRoot h1,#aRoot h2,#aRoot h3,#aRoot p{margin:0}
+#aRoot button{font:inherit;color:inherit}
+#aRoot a{color:inherit}
+#aRoot :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+#aRoot .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+#aRoot .bar .in{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+#aRoot .row1{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+#aRoot .brand{display:flex;align-items:center;gap:12px;min-width:0}
+#aRoot .logo{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
+#aRoot .brand h1{font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+#aRoot .brand small{color:var(--muted);font-size:12px}
+#aRoot .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+#aRoot .tab{border:0;background:transparent;color:var(--muted);padding:7px 16px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px}
+#aRoot .tab:hover{color:var(--fg)}
+#aRoot .tab[aria-selected="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+#aRoot .tools{display:flex;gap:8px;align-items:center}
+#aRoot .iconbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;height:36px;min-width:36px;padding:0 11px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;justify-content:center;color:var(--muted);text-decoration:none;font-size:13px;font-weight:600}
+#aRoot .iconbtn:hover{color:var(--fg);border-color:var(--faint)}
+#aRoot .row2{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+#aRoot .grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#aRoot .glab{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--faint);font-weight:700;margin-right:2px}
+#aRoot .chip{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 11px;cursor:pointer;font-size:12.5px;font-weight:500;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+#aRoot .chip:hover{color:var(--fg);border-color:var(--faint)}
+#aRoot .chip[aria-pressed="true"]{background:color-mix(in srgb,var(--c,var(--accent)) 22%,transparent);border-color:var(--c,var(--accent));color:var(--fg)}
+#aRoot .dot{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+#aRoot .sep{width:1px;height:20px;background:var(--line)}
+#aRoot .count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+#aRoot select.field{background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:10px;height:32px;padding:0 10px;font:inherit;font-size:13px}
+#aRoot input.field{background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:10px;height:32px;padding:0 10px;font:inherit;font-size:13px;width:160px}
+#aRoot .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:1100px){#aRoot .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){#aRoot .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#aRoot .kpi{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));border-radius:16px;padding:12px 14px 6px;min-width:0;display:flex;flex-direction:column;gap:2px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--c) 26%,var(--surface)),var(--surface) 72%);box-shadow:var(--shadow)}
+#aRoot .kpi .lab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+#aRoot .kpi .val{font-family:var(--mono);font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+#aRoot .kpi .sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+#aRoot .kpi .sp{height:44px;margin:0 -6px -4px}
+#aRoot .up{color:var(--good)}
+#aRoot .dn{color:var(--crit)}
+#aRoot .panel{display:flex;flex-direction:column;gap:16px}
+#aRoot .grid12{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+#aRoot .c3{grid-column:span 3}
+#aRoot .c4{grid-column:span 4}
+#aRoot .c5{grid-column:span 5}
+#aRoot .c6{grid-column:span 6}
+#aRoot .c7{grid-column:span 7}
+#aRoot .c8{grid-column:span 8}
+#aRoot .c12{grid-column:span 12}
+@media (max-width:1100px){#aRoot .c3,#aRoot .c4,#aRoot .c5,#aRoot .c6,#aRoot .c7,#aRoot .c8{grid-column:span 12}
+#aRoot .c3.half,#aRoot .c4.half{grid-column:span 6}}
+@media (max-width:640px){#aRoot .c3.half,#aRoot .c4.half{grid-column:span 12}}
+#aRoot .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+#aRoot .card>h2{font-size:14px;font-weight:650;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+#aRoot .card>h2 em{font-style:normal;font-size:11.5px;color:var(--faint);font-weight:500;font-family:var(--mono)}
+#aRoot .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);font-weight:400}
+#aRoot .legend span{display:inline-flex;align-items:center;gap:6px}
+#aRoot .sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+#aRoot .note{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+#aRoot .note b{color:var(--fg);font-weight:600}
+#aRoot .pill{--c:var(--accent);display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;
+  background:color-mix(in srgb,var(--c) 16%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);color:var(--fg)}
+#aRoot .pill b{color:var(--c);font-weight:800}
+#aRoot .pills{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+#aRoot .sechead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:6px}
+#aRoot .sechead h2{font-size:16px;font-weight:700}
+#aRoot .sechead span{color:var(--muted);font-size:12.5px}
+#aRoot .ins{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));border-radius:16px;padding:14px 16px;background:linear-gradient(145deg,color-mix(in srgb,var(--c) 18%,var(--surface)),var(--surface) 75%)}
+#aRoot .ins .t{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+#aRoot .ins .h{font-size:19px;font-weight:700;margin:3px 0 4px;letter-spacing:-.01em}
+#aRoot .ins p{font-size:12.5px;color:var(--muted)}
+#aRoot .ins p b{color:var(--fg)}
+#aRoot .qt{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 45%,var(--line));border-radius:14px;padding:12px 14px;background:linear-gradient(150deg,color-mix(in srgb,var(--c) 22%,var(--surface)),var(--surface) 80%)}
+#aRoot .qt .n{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1.1}
+#aRoot .qt .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+#aRoot .qt .d{font-size:12px;color:var(--muted);margin-top:4px}
+#aRoot .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+#aRoot table{border-collapse:collapse;width:100%;font-size:13px}
+#aRoot th,#aRoot td{padding:7px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+#aRoot thead th{position:sticky;top:0;background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;z-index:1}
+#aRoot thead th:hover{color:var(--fg)}
+#aRoot tbody tr:last-child td{border-bottom:0}
+#aRoot tbody tr:hover td{background:var(--surface2)}
+#aRoot td.num,#aRoot th.num{text-align:right}
+#aRoot .scroll{max-height:560px;overflow:auto}
+#aRoot .empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+#aRoot .plot3d{width:100%;height:520px}
+#aRoot .foot{color:var(--faint);font-size:11.5px;text-align:center;line-height:1.6}
+@media (max-width:560px){#aRoot .sep{display:none}
+#aRoot .count{margin-left:0}
+#aRoot input.field{width:100%}}
+#aRoot .imp-bar .note{margin:8px 0 0}
+#aRoot .imp-hero{--c1:var(--accent);--c2:var(--accent-2);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr);gap:20px;border-radius:20px;padding:22px 24px;border:1px solid color-mix(in srgb,var(--c1) 40%,var(--line));
+  background:radial-gradient(620px 240px at 0% 0%,color-mix(in srgb,var(--c1) 26%,transparent),transparent 70%),radial-gradient(520px 240px at 100% 100%,color-mix(in srgb,var(--c2) 24%,transparent),transparent 70%),var(--surface);box-shadow:var(--shadow)}
+@media (max-width:980px){#aRoot .imp-hero{grid-template-columns:1fr}}
+#aRoot .imp-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted)}
+#aRoot .imp-node{--c:var(--accent);padding:5px 14px;border-radius:999px;font-weight:700;font-size:13px;color:var(--fg);background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 60%,transparent)}
+#aRoot .imp-verdict{display:flex;align-items:center;gap:12px;font-size:32px;font-weight:800;letter-spacing:-.02em;margin:14px 0 6px;line-height:1.1}
+#aRoot .imp-verdict i{width:12px;height:12px;border-radius:50%;background:var(--v);box-shadow:0 0 0 5px color-mix(in srgb,var(--v) 25%,transparent);flex:none}
+#aRoot .imp-left p{color:var(--muted);font-size:13.5px;max-width:62ch}
+#aRoot .imp-meta{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+#aRoot .imp-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:center}
+#aRoot .imp-stat{--c:var(--accent);border:1px solid color-mix(in srgb,var(--c) 38%,var(--line));border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--c) 20%,var(--surface)),var(--surface) 80%)}
+#aRoot .imp-stat .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+#aRoot .imp-stat .v{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.15;letter-spacing:-.02em}
+#aRoot .imp-stat .s{font-size:11.5px;color:var(--muted)}
+#aRoot .imp-slider{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+#aRoot .imp-slider b{font-size:20px}
+#aRoot input[type=range]{width:100%;accent-color:var(--accent);height:28px;cursor:pointer}
+#aRoot .imp-out{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 8px}
+#aRoot .imp-out .imp-stat .v{font-size:21px}
+#aRoot .tt{padding:8px 11px;font-size:12px;line-height:1.55}
+#aRoot .tt span{color:var(--muted)}
+#aRoot #ap-impact .card{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 94%,var(--accent)),var(--surface))}
+</style>
+<style>
+
+/* ===== one-page dashboard additions ===== */
+.wrap{gap:12px}.panel{gap:12px}
+.jump{gap:2px;padding:3px}
+.jump .tab{text-decoration:none;display:inline-block;padding:6px 11px;font-size:13px}
+.jump .tab.on{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+.band{font-size:19px;font-weight:700;margin:14px 0 0;padding-left:10px;border-left:4px solid var(--accent);scroll-margin-top:150px}
+#aRoot{display:flex;flex-direction:column;gap:12px}
+#aRoot .afilters{padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+
+</style>
+<link rel="stylesheet" href="{% static 'grid_report/css/grid-theme.css' %}">
+</head>
+<body>
+<div class="bar"><div class="in">
+  <div class="row1">
+    {% include "grid_report/_brand.html" %}
+    <nav class="tabs jump" id="jump" aria-label="Sections"><a class="tab" href="#s-overview" data-s="s-overview">Overview</a><a class="tab" href="#s-grids" data-s="s-grids">Grids</a><a class="tab" href="#s-kpis" data-s="s-kpis">KPIs</a><a class="tab" href="#s-perf" data-s="s-perf">Performance</a><a class="tab" href="#s-a-overview" data-s="s-a-overview">Relationships</a><a class="tab" href="#s-a-impact" data-s="s-a-impact">Impact</a><a class="tab" href="#s-a-pairs" data-s="s-a-pairs">Pairs</a><a class="tab" href="#s-a-break" data-s="s-a-break">Breakdown</a><a class="tab" href="#s-a-lab" data-s="s-a-lab">3D Lab</a><a class="tab" href="#s-a-action" data-s="s-a-action">Actions</a></nav>
+    <div class="tools">
+      <button class="iconbtn" id="fsBtn" type="button" aria-label="Fullscreen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+      <span class="periodchip" id="periodLbl"></span><a class="iconbtn" data-nav href="{% url 'home' %}" aria-label="Home" title="Home"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 10 4l7 5.5V16a1 1 0 0 1-1 1h-3.5v-5h-5v5H4a1 1 0 0 1-1-1z"/></svg></a><button type="button" class="iconbtn theme-toggle" data-theme-toggle id="themeBtn" aria-label="Switch theme" title="Switch theme"><svg class="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3 7 7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7"/></svg><svg class="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg></button>
+    </div>
+  </div>
+  <div class="row2" id="filters"></div>
+</div></div>
+
+<div class="wrap">
+
+  <section class="kpis" id="kpis" aria-label="Headline KPIs"></section>
+
+  <h2 class="band" id="s-overview">Overview</h2>
+  <section class="panel" id="p-overview">
+    <div class="grid12">
+      <div class="card c3"><h2>Central score</h2><div id="chGauge"></div></div>
+      <div class="card c5"><h2>Sub-region score <span class="legend"><span><i class="sw" style="background:var(--faint)"></i><b class="lastLbl"></b></span><span><i class="sw" style="background:var(--accent)"></i><b class="nowLbl"></b></span></span></h2><div id="chRegion"></div></div>
+      <div class="card c4"><div class="duo"><div><h3>Movement</h3><div id="chMove"></div></div><div><h3>Score band</h3><div id="chBand"></div></div></div></div>
+    </div>
+    <div class="card"><h2>Grid ranking <em id="rankN"></em></h2><div id="chRank"></div></div>
+    <div class="grid12">
+      <div class="card c3 half"><h2>Top 5</h2><div class="lb" id="lbTop"></div></div>
+      <div class="card c3 half"><h2>Needs attention</h2><div class="lb" id="lbLow"></div></div>
+      <div class="card c6"><h2>Cell availability trend <span class="legend" id="lgAvl"></span></h2><div id="chAvl"></div></div>
+    </div>
+  </section>
+
+  <h2 class="band" id="s-grids">Grids</h2>
+  <section class="panel" id="p-grids">
+    <div class="card"><h2>Grid wall <em id="wallN"></em></h2><div class="wall" id="wall"></div></div>
+    <div class="grid12">
+      <div class="card c7"><h2>Score vs availability <span class="legend" id="lgBub"></span></h2><div id="chBub"></div></div>
+      <div class="card c5"><h2>Biggest movers</h2><div id="chMovers"></div></div>
+    </div>
+    <div class="card"><h2>KPI heatmap <span class="legend"><span><i class="sw" style="background:var(--good)"></i>5</span><span><i class="sw" style="background:color-mix(in srgb,var(--good) 40%,var(--surface))"></i>4+</span><span><i class="sw" style="background:var(--warn)"></i>2.5+</span><span><i class="sw" style="background:var(--crit)"></i>&lt;2.5</span></span></h2><div class="tablewrap scroll"><table class="heat" id="heat"></table></div></div>
+    <div class="card"><h2>Scorecard <em id="rowCount"></em></h2><div class="tablewrap scroll"><table id="tbl"><thead></thead><tbody></tbody></table></div></div>
+  </section>
+
+  <h2 class="band" id="s-kpis">KPIs</h2>
+  <section class="panel" id="p-kpis">
+    <div class="grid12">
+      <div class="card c4"><h2>KPI strength <span class="legend"><span><i class="sw" style="background:var(--accent)"></i>Selection</span><span><i class="sw" style="background:var(--faint)"></i>Central</span></span></h2><div id="chRadar"></div></div>
+      <div class="card c4"><h2>Open issues by KPI</h2><div id="chKpiOpen"></div></div>
+      <div class="card c4"><h2>Tracker status</h2><div id="chIssue"></div></div>
+    </div>
+    <div class="grid12">
+      <div class="card c6"><h2>Points lost <span class="legend" id="lossLegend"></span></h2><div id="chLoss"></div></div>
+      <div class="card c6"><h2>Issue types <span class="legend"><span><i class="sw" style="background:var(--serious)"></i>Open</span><span><i class="sw" style="background:var(--good)"></i>Resolved</span></span></h2><div id="chType"></div></div>
+    </div>
+    <div class="card"><h2>Grids with most open issues</h2><div id="chTopOpen"></div></div>
+  </section>
+
+  <h2 class="band" id="s-perf">Performance</h2>
+  <section class="panel" id="p-perf">
+    <div class="card"><h2>Trend by sub-region <span class="grp" id="pmChips"></span></h2><div id="chPerf"></div></div>
+    <div class="grid12">
+      <div class="card c4"><h2>Revenue growth YoY</h2><div id="chYoy"></div></div>
+      <div class="card c4"><h2>Degradation loss sites <span class="legend" id="lgLossSites"></span></h2><div id="chLossSites"></div></div>
+      <div class="card c4"><h2>Units per site YTD <em>target 3,420</em></h2><div id="chUnits"></div></div>
+    </div>
+    <div class="grid12">
+      <div class="card c6"><h2>Fuel per site MTD <em>target 220</em></h2><div id="chFuel"></div></div>
+      <div class="card c6"><h2>Not-operational &amp; under-used DGs</h2><div id="chDG"></div></div>
+    </div>
+  </section>
+
+  
+
+  <div id="aRoot">
+    <div class="afilters"><div class="row2" id="a_filters"></div></div>
+    <span id="a_periodLbl" hidden></span>
+    <section class="kpis" id="a_kpis" aria-label="Analysis KPIs"></section>
+
+
+  <!-- ============ OVERVIEW ============ -->
+  <h2 class="band" id="s-a-overview">Analysis · Relationships</h2>
+  <section class="panel" id="ap-overview">
+    <div class="grid12" id="insights"></div>
+    <div class="grid12">
+      <div class="card c5"><h2>Correlation matrix</h2><div id="chHeat"></div></div>
+      <div class="card c7"><h2>Which relationships are strongest? <span class="legend"><span><i class="sw" style="background:var(--s3)"></i>Positive</span><span><i class="sw" style="background:var(--s2)"></i>Negative</span></span></h2><div id="chPairRank"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ IMPACT (cause -> effect) ============ -->
+  <h2 class="band" id="s-a-impact">Analysis · Impact (cause → effect)</h2>
+  <section class="panel" id="ap-impact">
+    <div class="card imp-bar">
+      <div class="grp"><span class="glab">Cause</span><select class="field" id="selC" aria-label="Cause"></select>
+        <button class="iconbtn" id="swapCE" type="button" title="Swap cause and effect" aria-label="Swap cause and effect">⇄</button>
+        <span class="glab">Effect</span><select class="field" id="selE" aria-label="Effect"></select>
+        <span class="sep"></span><span class="glab">Estimate from</span>
+        <button class="chip" type="button" data-ib="within" aria-pressed="true">Inside each grid</button>
+        <button class="chip" type="button" data-ib="cross" aria-pressed="false">Between grids</button></div>
+    </div>
+    <div class="imp-hero" id="impHero"></div>
+    <div class="grid12" id="impInsights"></div>
+    <div class="grid12">
+      <div class="card c7"><h2>Cause vs effect across grids</h2><div id="chImpScatter"></div></div>
+      <div class="card c5"><h2>What-if simulator <em>model estimate</em></h2>
+        <div class="imp-slider"><span class="glab">Change in cause</span><b id="whatVal" class="mono"></b></div>
+        <input type="range" id="whatSlider" aria-label="Change in cause">
+        <div class="imp-out" id="whatOut"></div><div id="chImpResp"></div></div>
+    </div>
+    <div class="sechead"><h2>Timing and trend</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Lead / lag test</h2><div id="chImpLag"></div></div>
+      <div class="card c6"><h2>Indexed trend, network <em>first month = 100</em></h2><div id="chImpIdx"></div></div>
+    </div>
+    <div class="sechead"><h2>What moves the effect</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Drivers ranked <em>correlation r</em></h2><div id="chImpDrv"></div></div>
+      <div class="card c6"><h2>Month-over-month moves <em>network, % change</em></h2><div id="chImpMom"></div></div>
+    </div>
+    <div class="sechead"><h2>Where to act</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Grid momentum</h2><div id="chImpQuad"></div></div>
+      <div class="card c6"><h2>Upside from closing the gap</h2><div class="note" id="treeNote"></div><div id="chImpTree"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ CRITICAL PAIRS ============ -->
+  <h2 class="band" id="s-a-pairs">Analysis · Critical pairs</h2>
+  <section class="panel" id="ap-pairs">
+    <div id="pairBlocks" class="panel"></div>
+    <div class="sechead"><h2>Pair stability over months</h2></div>
+    <div class="card"><h2>Monthly correlation (r) of the five critical pairs <span class="legend" id="lgMonthR"></span></h2><div id="chMonthR"></div></div>
+    <div class="sechead"><h2>Build your own pair</h2></div>
+    <div class="card">
+      <div class="grp" style="margin-bottom:8px"><span class="glab">X</span><select class="field" id="selX"></select><span class="glab">Y</span><select class="field" id="selY"></select></div>
+      <div class="pills" id="customPills"></div>
+      <div class="note" id="customNote"></div>
+      <div id="chCustom"></div>
+    </div>
+  </section>
+
+  <!-- ============ BREAKDOWN ============ -->
+  <h2 class="band" id="s-a-break">Analysis · Breakdown</h2>
+  <section class="panel" id="ap-break">
+    <div class="sechead"><h2>Sub-region wise</h2></div>
+    <div class="grid12" id="smRow"></div>
+    <div class="card"><h2>Sub-region scorecard</h2><div class="tablewrap"><table id="tblReg"><thead></thead><tbody></tbody></table></div></div>
+
+    <div class="sechead"><h2>Site classification wise</h2></div>
+    <div class="grid12">
+      <div class="card c6"><h2>Availability by power category <span class="legend" id="lgCat"></span></h2><div id="chCat"></div></div>
+      <div class="card c6"><h2>Site tier mix by sub-region <em>% of sites</em></h2><div id="chTier"></div></div>
+    </div>
+    <div class="grid12">
+      <div class="card c6"><h2>Premium-tier share vs Availability</h2><div class="pills" id="pillPA"></div><div id="chPremA"></div></div>
+      <div class="card c6"><h2>Premium-tier share vs Revenue</h2><div class="pills" id="pillPR"></div><div id="chPremR"></div></div>
+    </div>
+
+    <div class="sechead"><h2>Group wise</h2></div>
+    <div class="grid12">
+      <div class="card c5"><h2>Group vs Central average</h2><div id="chGroupRadar"></div></div>
+      <div class="card c7"><h2>Group scorecard</h2><div class="tablewrap"><table id="tblGrp"><thead></thead><tbody></tbody></table></div></div>
+    </div>
+    <div class="card">
+      <h2>Grid-wise leaders &amp; laggards <span class="grp" id="gmChips"></span></h2>
+      <div class="grid12">
+        <div class="c6"><div class="note"><b>Best 10</b></div><div id="chBest"></div></div>
+        <div class="c6"><div class="note"><b>Weakest 10</b></div><div id="chWorst"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3D LAB ============ -->
+  <h2 class="band" id="s-a-lab">Analysis · 3D Lab</h2>
+  <section class="panel" id="ap-lab">
+    <div class="card"><h2>Availability × Data × Voice
+      <span class="grp"><button class="chip" id="rotA" type="button" aria-pressed="false">⟳ Auto-rotate</button></span></h2>
+      <div id="p3a" class="plot3d"></div></div>
+    <div class="card"><h2>Availability × Load shedding × Revenue <span class="legend" id="lg3b"></span></h2>
+      <div id="p3b" class="plot3d"></div></div>
+    <div class="card"><h2>Sub-region × Month surface <span class="grp" id="surfChips"></span></h2>
+      <div id="p3c" class="plot3d"></div></div>
+  </section>
+
+  <!-- ============ GRID ACTIONS ============ -->
+  <h2 class="band" id="s-a-action">Analysis · Grid actions</h2>
+  <section class="panel" id="ap-action">
+    <div class="grid12" id="quadTiles"></div>
+    <div class="grid12">
+      <div class="card c7"><h2>Grid quadrants: Availability vs Revenue</h2><div id="chQuad"></div></div>
+      <div class="card c5"><h2>Revenue vs what availability predicts</h2><div class="note" id="gapNote"></div><div id="chGap"></div></div>
+    </div>
+    <div class="card"><h2>Grid action list <input class="field" id="q" type="search" placeholder="Search grid…" aria-label="Search grid"></h2>
+      <div class="tablewrap scroll"><table id="tblGrid"><thead></thead><tbody></tbody></table></div></div>
+  </section>
+
+
+    <p class="foot" id="a_foot"></p>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Grid detail">
+  <div class="dhead" id="dhead"></div>
+  <div class="dbody" id="dbody"></div>
+</aside>
+
+
+{{ report_data|json_script:"report-data" }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.1/apexcharts.min.js"></script>
+<script>
+(function(){
+  const D = JSON.parse(document.getElementById('report-data').textContent);
+  const G = D.grids, R = D.regions, S = D.summary, M = D.months, META = D.meta, CEN = R[0], REG = R.slice(1);
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const state = {tab:'overview', region:'All', band:'all', move:'all', q:'', sort:{key:'score',dir:-1}, open:null, metric:'t_avl', pm:'t_avl', showRes:false};
+  const h = (location.hash||'').replace('#','');
+  if (['overview','grids','kpis','perf'].indexOf(h)>=0) state.tab = h;
+
+  const $ = id => document.getElementById(id);
+  $('periodLbl').textContent = META.period + ' · ' + META.title.replace(/.*\(/,'').replace(')','');
+  document.querySelectorAll('.lastLbl').forEach(e=>e.textContent=META.last); document.querySelectorAll('.nowLbl').forEach(e=>e.textContent=META.now);
+  const nz = v => v==null ? null : Number(v);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const isDark = () => { const t = document.documentElement.getAttribute('data-theme'); return t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const f1 = n => (n==null||isNaN(n))?'–':Number(n).toFixed(1);
+  const f2 = n => (n==null||isNaN(n))?'–':Number(n).toFixed(2);
+  const int = n => Math.round(n).toLocaleString('en-US');
+  const sgn = n => (n>0?'+':n<0?'−':'')+Math.abs(n).toFixed(1);
+  const sum = (a,f) => a.reduce((x,y)=>x+f(y),0);
+  const avg = (a,f) => a.length? sum(a,f)/a.length : 0;
+
+  const MAXC = {s_avl:43, s_fuel:5, s_underu:5, s_units:5, s_basics:50};
+  const COMP = [
+    {k:'s_avl', n:'Availability', c:'--s1'}, {k:'s_fuel', n:'Fuel', c:'--s2'}, {k:'s_underu', n:'Under-used DGs', c:'--s3'},
+    {k:'s_units', n:'Energy', c:'--s4'}, {k:'s_basics', n:'3 Basics + MW', c:'--s5'}
+  ];
+  const KPIS = [
+    {s:'s_phase',k:'k_phase',n:'2-phase missing',a:'2-Phase'},{s:'s_fluct',k:'k_fluct',n:'High fluctuation',a:'Fluctuation'},
+    {s:'s_down',k:'k_down',n:'Down cells',a:'Down cells'},{s:'s_zero',k:'k_zero',n:'Zero traffic',a:'Zero traffic'},
+    {s:'s_compl',k:'k_compl',n:'Complaints 6x',a:'Complaints'},{s:'s_vswr',k:'k_vswr',n:'VSWR',a:'VSWR'},
+    {s:'s_temp',k:'k_temp',n:'BB high temp',a:'High temp'},{s:'s_link',k:'k_link',n:'Hi-cap link',a:'Link avail'},
+    {s:'s_rsl',k:'k_rsl',n:'RSL deviation',a:'RSL'},{s:'s_crit',k:'k_crit',n:'Critical alarms',a:'Crit alarms'}
+  ];
+  const MOVE = {
+    'Last <90 | Now >90': {k:'imp', n:'Improved', i:'↑', c:'--good'},
+    'Last vs Now >90':    {k:'sus', n:'Sustained', i:'✓', c:'--accent'},
+    'Last >90 | Now <90': {k:'dec', n:'Declined', i:'✗', c:'--serious'},
+    'Last vs Now <90':    {k:'low', n:'Persistent low', i:'↓', c:'--crit'}
+  };
+  const MOVEKEYS = ['imp','sus','dec','low'];
+  const MOVEBY = {}; Object.keys(MOVE).forEach(k=>{ MOVEBY[MOVE[k].k] = MOVE[k]; });
+  const bandOf = s => s>=95?'95':s>=90?'90':s>=80?'80':'0';
+  const BAND = {'95':{n:'95%+', c:'--band-95'}, '90':{n:'90–95', c:'--band-90'}, '80':{n:'80–90', c:'--band-80'}, '0':{n:'<80', c:'--band-0'}};
+  const BANDKEYS = ['95','90','80','0'];
+  const delta = g => g.score - g.last;
+  const openIssues = g => sum(KPIS, x=>g[x.k]||0);
+  const pill = m => { const o = MOVE[m]||{n:m,i:'•',c:'--muted'}; return '<span class="pill" style="--c:var('+o.c+')"><b>'+o.i+'</b>'+o.n+'</span>'; };
+  const isOpen = i => i.status.toLowerCase()!=='resolved';
+
+  /* ---------- scope ---------- */
+  const regionGrids = () => state.region==='All' ? G : G.filter(g=>g.region===state.region);
+  const vis = () => {
+    const q = state.q.trim().toLowerCase();
+    return regionGrids().filter(g=>{
+      if (state.band!=='all' && bandOf(g.score)!==state.band) return false;
+      if (state.move!=='all' && (MOVE[g.move]||{}).k!==state.move) return false;
+      if (q && g.name.toLowerCase().indexOf(q)<0) return false;
+      return true;
+    });
+  };
+  const regionRow = () => state.region==='All' ? CEN : R.filter(r=>r.name===state.region)[0];
+  const sRow = () => S.filter(s=>s.region===(state.region==='All'?'Central':state.region))[0];
+  const filtersOn = () => state.region!=='All' || state.band!=='all' || state.move!=='all' || state.q;
+
+  /* ---------- filter bar ---------- */
+  function drawFilters(){
+    const reg = [['All','All']].concat(REG.map(r=>[r.name, r.name.replace('Central-','C-')]));
+    let t = '<div class="grp"><span class="glab">Region</span>'+reg.map(o=>'<button type="button" class="chip" data-f="region" data-v="'+o[0]+'" aria-pressed="'+(state.region===o[0])+'">'+o[1]+'</button>').join('')+'</div><span class="sep"></span>';
+    t += '<div class="grp"><span class="glab">Score</span>'+BANDKEYS.map(k=>'<button type="button" class="chip" style="--c:var('+BAND[k].c+')" data-f="band" data-v="'+k+'" aria-pressed="'+(state.band===k)+'"><i class="dot"></i>'+BAND[k].n+'</button>').join('')+'</div><span class="sep"></span>';
+    t += '<div class="grp"><span class="glab">Status</span>'+MOVEKEYS.map(k=>{ const o = MOVEBY[k]; return '<button type="button" class="chip" style="--c:var('+o.c+')" data-f="move" data-v="'+k+'" aria-pressed="'+(state.move===k)+'"><i class="dot"></i>'+o.i+' '+o.n+'</button>'; }).join('')+'</div>';
+    t += '<input class="field" id="search" type="search" placeholder="Search grid" aria-label="Search grid" value="'+esc(state.q)+'">';
+    t += (filtersOn()?'<button type="button" class="chip reset" id="resetBtn">Reset ✕</button>':'');
+    t += '<span class="count">'+vis().length+' / '+G.length+' grids</span>';
+    const keep = document.activeElement && document.activeElement.id==='search';
+    $('filters').innerHTML = t;
+    if (keep){ const el = $('search'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }
+  $('filters').addEventListener('click', e=>{
+    if (e.target.closest('#resetBtn')){ state.region='All'; state.band='all'; state.move='all'; state.q=''; renderAll(); return; }
+    const b = e.target.closest('.chip'); if (!b || !b.dataset.f) return;
+    const f = b.dataset.f, v = b.dataset.v;
+    state[f] = (f==='region' && v==='All') ? 'All' : (state[f]===v ? (f==='region'?'All':'all') : v);
+    renderAll();
+  });
+  $('filters').addEventListener('input', e=>{ if (e.target.id==='search'){ state.q = e.target.value; renderAll(); } });
+  const toggle = (f,v) => { state[f] = state[f]===v ? (f==='region'?'All':'all') : v; renderAll(); };
+
+  /* ---------- tabs ---------- */
+  function setTab(t){ state.tab = t; drawTab(); }
+
+  /* ---------- chart plumbing ---------- */
+  const charts = {};
+  const merge = (a,b) => { for (const k in b){ if (b[k] && typeof b[k]==='object' && !Array.isArray(b[k])) a[k] = merge(a[k]&&typeof a[k]==='object'?a[k]:{}, b[k]); else a[k]=b[k]; } return a; };
+  const base = () => ({chart:{foreColor:css('--muted'),fontFamily:'Calibri, Carlito, Arial, sans-serif',background:'transparent',toolbar:{show:false},animations:{enabled:!reduce},zoom:{enabled:false}},
+    grid:{borderColor:css('--line'),strokeDashArray:3}, tooltip:{theme:isDark()?'dark':'light'}, legend:{labels:{colors:css('--fg')},fontSize:'12px'}, dataLabels:{enabled:false}});
+  function draw(id, opts){
+    if (charts[id]) { try{ charts[id].destroy(); }catch(e){} delete charts[id]; }
+    const el = $(id); if (!el) return;
+    if (!window.ApexCharts){ el.innerHTML = '<div class="empty">Charts could not load.</div>'; return; }
+    el.innerHTML = '';
+    charts[id] = new ApexCharts(el, merge(base(), opts)); charts[id].render();
+  }
+  const noData = id => { if (charts[id]){ try{charts[id].destroy();}catch(e){} delete charts[id]; } const el=$(id); if (el) el.innerHTML = '<div class="empty">No data for this filter</div>'; };
+  const mono = {fontSize:'11px',fontFamily:'Calibri, Carlito, Arial, sans-serif'};
+  const line90 = (txt) => ({y:90,borderColor:css('--warn'),strokeDashArray:4,label:{text:txt||'90',position:'left',textAnchor:'start',offsetY:-4,style:{color:'#1a1200',background:css('--warn'),fontSize:'10px',fontWeight:600}}});
+  const regColors = () => ['--s1','--s2','--s3','--s4','--s5','--s6'].map(css);
+
+  /* ---------- KPI cards ---------- */
+  function drawKpis(){
+    const row = regionRow(), s = sRow(), grids = regionGrids();
+    const n90 = grids.filter(g=>g.score>=90).length, d = s.now - s.last;
+    const open = sum(grids, openIssues);
+    const topK = KPIS.map(x=>({n:x.a, v:sum(grids,g=>g[x.k]||0)})).sort((a,b)=>b.v-a.v)[0];
+    const tiles = [
+      {c:'--accent', l:'Score', v:f1(s.now)+'<small>%</small>', s:'<span class="'+(d>=0?'up':'dn')+'">'+(d>=0?'▲':'▼')+' '+sgn(d)+'</span> vs '+META.last+' '+f1(s.last), mini:[s.now/108*100, 90/108*100]},
+      {c:'--good', l:'Grids ≥ 90%', v:n90+'<small> / '+grids.length+'</small>', s:Math.round(100*n90/grids.length)+'% on target', mini:[100*n90/grids.length]},
+      {c:'--s1', l:'Cell availability', v:f2(row.avl)+'<small>%</small>', s:'YTD '+f2(row.avl_ytd), sp:'t_avl', fmt:v=>v.toFixed(2)+'%'},
+      {c:'--s3', l:'Revenue / site / month · '+M[META.rev_months-1], v:f1(row.rev/1000)+'<small>K</small>', s:'<span class="'+(row.yoy>=0?'up':'dn')+'">'+(row.yoy>=0?'▲':'▼')+' '+(row.yoy*100).toFixed(1)+'%</span> YoY', sp:'t_rev', fmt:v=>(v/1000).toFixed(0)+'K'},
+      {c:'--s2', l:'Voice Erl / site / day', v:int(row.voice), s:'YTD '+int(row.voice_ytd), sp:'t_voice', fmt:v=>v.toFixed(0)},
+      {c:'--s5', l:'Data GB / site / day', v:int(row.data), s:'YTD '+int(row.data_ytd), sp:'t_data', fmt:v=>v.toFixed(0)},
+      {c:'--s4', l:'Load shedding', v:f2(row.ls), s:'YTD '+f2(row.ls_ytd)+' · lower is better', sp:'t_ls', fmt:v=>v.toFixed(2)},
+      {c:'--serious', l:'Open KPI issues', v:int(open), s:'Top: '+topK.n+' ('+topK.v+')', mini:null}
+    ];
+    $('kpis').innerHTML = tiles.map((t,i)=>{
+      let extra = '';
+      if (t.sp) extra = '<div class="sp" id="sp'+i+'"></div>';
+      else if (t.mini){ extra = '<div class="track mini"><i style="width:'+Math.min(100,t.mini[0])+'%;background:var('+t.c+')"></i>'+(t.mini[1]?'<u style="left:'+t.mini[1]+'%"></u>':'')+'</div>'; }
+      return '<div class="kpi" style="--c:var('+t.c+')"><div class="lab">'+t.l+'</div><div class="val">'+t.v+'</div><div class="sub">'+t.s+'</div>'+extra+'</div>';
+    }).join('');
+    tiles.forEach((t,i)=>{
+      if (!t.sp) return;
+      const col = css(t.c), vals = row[t.sp].map(nz); const lastI = vals.reduce((a,v,i)=>v==null?a:i,0);
+      draw('sp'+i,{chart:{type:'area',height:46,sparkline:{enabled:true}},series:[{name:'Month',data:vals}],colors:[col],stroke:{width:2,curve:'smooth'},
+        fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:.45,opacityTo:.02,stops:[0,100]}},xaxis:{categories:M},
+        tooltip:{fixed:{enabled:false},x:{show:true},y:{formatter:t.fmt},marker:{show:false}},
+        markers:{size:0,hover:{size:4}},
+        annotations:{points:[{x:M[lastI],y:vals[lastI],marker:{size:4,fillColor:col,strokeColor:css('--surface'),strokeWidth:2}}]}});
+    });
+  }
+
+  /* ---------- overview ---------- */
+  function cGauge(){
+    const s = sRow(), v = s.now;
+    draw('chGauge',{chart:{type:'radialBar',height:270},series:[Math.min(100,+v.toFixed(1))],colors:[css(BAND[bandOf(v)].c)],
+      plotOptions:{radialBar:{startAngle:-120,endAngle:120,hollow:{size:'62%'},track:{background:css('--surface2'),strokeWidth:'100%'},
+        dataLabels:{name:{show:true,offsetY:22,color:css('--muted'),fontSize:'12px',formatter:()=> (state.region==='All'?'Central':state.region)+' · '+META.last+' '+f1(s.last)},
+          value:{show:true,offsetY:-14,color:css('--fg'),fontSize:'34px',fontWeight:600,fontFamily:'Calibri, Carlito, Arial, sans-serif',formatter:()=>f1(v)+'%'}}}},
+      stroke:{lineCap:'round'},labels:['Score'],legend:{show:false}});
+  }
+  function cRegion(){
+    draw('chRegion',{chart:{type:'bar',height:270,events:{dataPointSelection:(e,c,cfg)=>toggle('region',REG[cfg.dataPointIndex].name)}},
+      series:[{name:META.last,data:REG.map(r=>+S.filter(s=>s.region===r.name)[0].last.toFixed(1))},{name:META.now,data:REG.map(r=>+r.score.toFixed(1))}],
+      colors:[css('--faint'),css('--accent')],
+      plotOptions:{bar:{columnWidth:'64%',borderRadius:4,dataLabels:{position:'top'}}},stroke:{show:true,width:2,colors:['transparent']},
+      dataLabels:{enabled:true,offsetY:-18,style:{fontSize:'10px',colors:[css('--muted')],fontFamily:'Calibri, Carlito, Arial, sans-serif'},formatter:v=>v.toFixed(1)},
+      xaxis:{categories:REG.map(r=>r.name.replace('Central-','C-')),axisBorder:{show:false},axisTicks:{show:false}},
+      yaxis:{min:0,max:115,tickAmount:5,labels:{formatter:v=>v.toFixed(0)}},annotations:{yaxis:[line90()]},legend:{show:false}});
+  }
+  function donut(id, labels, vals, cols, key, keys){
+    draw(id,{chart:{type:'donut',height:230,events:{dataPointSelection:(e,c,cfg)=>toggle(key, keys[cfg.dataPointIndex])}},
+      series:vals,labels:labels,colors:cols,
+      stroke:{width:2,colors:[css('--surface')]},legend:{show:false},
+      dataLabels:{enabled:true,style:{fontSize:'12px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:['#fff']},dropShadow:{enabled:false},formatter:(v,o)=>o.w.config.series[o.seriesIndex]||''},
+      plotOptions:{pie:{donut:{size:'62%',labels:{show:true,name:{show:true,fontSize:'11px',color:css('--muted'),offsetY:18},value:{show:true,fontSize:'26px',fontWeight:600,color:css('--fg'),fontFamily:'Calibri, Carlito, Arial, sans-serif',offsetY:-8},
+        total:{show:true,showAlways:true,label:'grids',fontSize:'11px',color:css('--muted'),formatter:w=>w.globals.seriesTotals.reduce((a,b)=>a+b,0)}}}}},
+      tooltip:{y:{formatter:v=>v+' grids'}}});
+  }
+  function cDonuts(){
+    const g = regionGrids();
+    donut('chMove', MOVEKEYS.map(k=>MOVEBY[k].n), MOVEKEYS.map(k=>g.filter(x=>(MOVE[x.move]||{}).k===k).length), MOVEKEYS.map(k=>css(MOVEBY[k].c)), 'move', MOVEKEYS);
+    donut('chBand', BANDKEYS.map(k=>BAND[k].n), BANDKEYS.map(k=>g.filter(x=>bandOf(x.score)===k).length), BANDKEYS.map(k=>css(BAND[k].c)), 'band', BANDKEYS);
+  }
+  function cRank(){
+    const list = vis().slice().sort((a,b)=>b.score-a.score);
+    $('rankN').textContent = list.length+' grids · click a bar';
+    if (!list.length) return noData('chRank');
+    draw('chRank',{chart:{type:'bar',height:330,events:{dataPointSelection:(e,c,cfg)=>openGrid(list[cfg.dataPointIndex].name)}},
+      series:[{name:'Score',data:list.map(g=>+g.score.toFixed(1))}],colors:list.map(g=>css(BAND[bandOf(g.score)].c)),
+      plotOptions:{bar:{distributed:true,columnWidth:'74%',borderRadius:3}},legend:{show:false},
+      xaxis:{categories:list.map(g=>g.name),labels:{rotate:-90,rotateAlways:true,style:{fontSize:'10px',fontFamily:'Calibri, Carlito, Arial, sans-serif'}},axisTicks:{show:false}},
+      yaxis:{min:0,max:115,tickAmount:5,labels:{formatter:v=>v.toFixed(0)}},annotations:{yaxis:[line90('90% target')]},
+      tooltip:{y:{formatter:v=>v.toFixed(1)+'%'}}});
+  }
+  function lbRow(g,i){
+    const d = delta(g), c = BAND[bandOf(g.score)].c;
+    return '<div class="lbr" tabindex="0" data-g="'+g.name+'"><span class="n">'+(i+1)+'</span><b class="mono">'+g.name+'</b><div class="track"><i style="width:'+Math.min(100,g.score/108*100)+'%;background:var('+c+')"></i><u style="left:'+(90/108*100)+'%"></u></div><span class="mono" style="text-align:right">'+f1(g.score)+'</span><span class="delta '+(d>=0?'up':'dn')+'" style="text-align:right">'+(d>=0?'▲':'▼')+Math.abs(d).toFixed(1)+'</span></div>';
+  }
+  function drawLists(){
+    const l = vis().slice().sort((a,b)=>b.score-a.score);
+    $('lbTop').innerHTML = l.slice(0,5).map(lbRow).join('') || '<div class="empty">–</div>';
+    $('lbLow').innerHTML = l.slice(-5).reverse().map(lbRow).join('') || '<div class="empty">–</div>';
+  }
+  document.addEventListener('click', e=>{ const r = e.target.closest('.lbr,.tile'); if (r) openGrid(r.dataset.g); });
+  document.addEventListener('keydown', e=>{ if (e.key==='Enter'){ const r = e.target.closest('.lbr,.tile,tr.row'); if (r && r.dataset.g) openGrid(r.dataset.g); } if (e.key==='Escape' && state.open) closeGrid(); });
+  function cAvl(){
+    const cols = regColors();
+    $('lgAvl').innerHTML = REG.map((r,i)=>'<span><i class="sw" style="background:'+cols[i]+'"></i>'+r.name.replace('Central-','C-')+'</span>').join('');
+    draw('chAvl',{chart:{type:'line',height:262},series:REG.map(r=>({name:r.name,data:r.t_avl.map(v=>v==null?null:+(+v).toFixed(2))})),colors:cols,
+      stroke:{width:state.region==='All'?REG.map(()=>2.5):REG.map(r=>r.name===state.region?4:1.5),curve:'smooth'},markers:{size:0,hover:{size:5}},
+      xaxis:{categories:M,axisBorder:{show:false},axisTicks:{show:false}},yaxis:{labels:{formatter:v=>v.toFixed(1)}},legend:{show:false},
+      annotations:{yaxis:[{y:98.5,borderColor:css('--warn'),strokeDashArray:4,label:{text:'98.5',position:'left',textAnchor:'start',offsetY:-4,style:{color:'#1a1200',background:css('--warn'),fontSize:'10px',fontWeight:600}}}]},
+      tooltip:{shared:true,intersect:false,y:{formatter:v=>v.toFixed(2)+'%'}}});
+  }
+
+  /* ---------- grids tab ---------- */
+  function drawWall(){
+    const l = vis().slice().sort((a,b)=>b.score-a.score);
+    $('wallN').textContent = l.length+' grids';
+    $('wall').innerHTML = l.length ? l.map(g=>{ const d = delta(g); return '<button type="button" class="tile" style="--c:var('+BAND[bandOf(g.score)].c+')" data-g="'+g.name+'"><b>'+g.name+'</b><span class="s">'+f1(g.score)+'</span><span class="d '+(d>=0?'up':'dn')+'">'+(d>=0?'▲':'▼')+' '+Math.abs(d).toFixed(1)+'</span></button>'; }).join('') : '<div class="empty" style="grid-column:1/-1">No grids match</div>';
+  }
+  function cBub(){
+    const l = vis();
+    $('lgBub').innerHTML = BANDKEYS.map(k=>'<span><i class="sw" style="background:var('+BAND[k].c+')"></i>'+BAND[k].n+'</span>').join('');
+    if (!l.length) return noData('chBub');
+    const ser = BANDKEYS.map(k=>({name:BAND[k].n,data:l.filter(g=>bandOf(g.score)===k).map(g=>({x:+g.avl.toFixed(2),y:+g.score.toFixed(1),z:g.sites,g:g.name}))})).filter(s=>s.data.length);
+    const used = BANDKEYS.filter(k=>l.some(g=>bandOf(g.score)===k));
+    const xs = l.map(g=>g.avl), mn = Math.floor((Math.min.apply(null,xs)-0.2)*5)/5, mx = Math.ceil((Math.max.apply(null,xs)+0.1)*5)/5;
+    draw('chBub',{chart:{type:'bubble',height:340,events:{dataPointSelection:(e,c,cfg)=>openGrid(ser[cfg.seriesIndex].data[cfg.dataPointIndex].g)}},
+      series:ser,colors:used.map(k=>css(BAND[k].c)),fill:{opacity:.75},legend:{show:false},
+      plotOptions:{bubble:{minBubbleRadius:5,maxBubbleRadius:22}},
+      xaxis:{type:'numeric',min:mn,max:mx,tickAmount:6,title:{text:'Cell availability %',style:{fontSize:'11px',fontWeight:500}},labels:{formatter:v=>(+v).toFixed(1)}},
+      yaxis:{min:60,max:115,tickAmount:5,title:{text:'Score %',style:{fontSize:'11px',fontWeight:500}},labels:{formatter:v=>(+v).toFixed(0)}},
+      annotations:{yaxis:[line90()]},
+      tooltip:{custom:({seriesIndex,dataPointIndex,w})=>{ const p = w.config.series[seriesIndex].data[dataPointIndex]; return '<div style="padding:8px 10px;font-size:12px"><b class="mono">'+p.g+'</b><br>Score '+p.y+'% · AVL '+p.x+'%<br>'+int(p.z)+' sites</div>'; }}});
+  }
+  function cMovers(){
+    const sc = vis().slice().sort((a,b)=>delta(b)-delta(a));
+    let pick = sc.length>14 ? sc.slice(0,7).concat(sc.slice(-6)) : sc;
+    const seen = {}; pick = pick.filter(g=>seen[g.name]?false:(seen[g.name]=1));
+    if (!pick.length) return noData('chMovers');
+    draw('chMovers',{chart:{type:'bar',height:Math.max(300,pick.length*25+40),events:{dataPointSelection:(e,c,cfg)=>openGrid(pick[cfg.dataPointIndex].name)}},
+      series:[{name:'Change',data:pick.map(g=>+delta(g).toFixed(1))}],colors:[o=>o.value>=0?css('--good'):css('--crit')],
+      plotOptions:{bar:{horizontal:true,barHeight:'68%',borderRadius:3}},
+      dataLabels:{enabled:true,style:{fontSize:'11px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:[css('--fg')]},formatter:v=>(v>0?'+':'')+v.toFixed(1),offsetX:6},
+      xaxis:{categories:pick.map(g=>g.name),labels:{formatter:v=>Math.round(v)}},yaxis:{labels:{style:mono}},legend:{show:false},
+      tooltip:{y:{formatter:v=>(v>0?'+':'')+v.toFixed(1)+' pts'}}});
+  }
+  const COLS = [
+    {k:'rank',n:'Rank',num:1,v:g=>g.rank,asc:1},{k:'name',n:'Grid',v:g=>g.name,asc:1},{k:'region',n:'Region',v:g=>g.region,asc:1},
+    {k:'score',n:'Score %',v:g=>g.score},{k:'delta',n:'vs '+META.last,num:1,v:delta},
+    {k:'move',n:'Status',v:g=>MOVEKEYS.indexOf((MOVE[g.move]||{}).k),asc:1},
+    {k:'avl',n:'AVL %',num:1,v:g=>g.avl},{k:'sites',n:'Sites',num:1,v:g=>g.sites},{k:'open',n:'Open',num:1,v:openIssues}
+  ];
+  function drawTable(){
+    const col = COLS.filter(c=>c.k===state.sort.key)[0] || COLS[3];
+    const list = vis().slice().sort((a,b)=>{ const x=col.v(a), y=col.v(b); return (x<y?-1:x>y?1:0)*state.sort.dir; });
+    $('rowCount').textContent = list.length+' grids';
+    $('tbl').querySelector('thead').innerHTML = '<tr>'+COLS.map(c=>{ const on = c.k===state.sort.key; return '<th class="'+(c.num?'num':'')+'" data-k="'+c.k+'" aria-sort="'+(on?(state.sort.dir>0?'ascending':'descending'):'none')+'">'+c.n+(on?(state.sort.dir>0?' ▲':' ▼'):'')+'</th>'; }).join('')+'</tr>';
+    $('tbl').querySelector('tbody').innerHTML = list.length ? list.map(g=>{
+      const d = delta(g), c = BAND[bandOf(g.score)].c;
+      return '<tr class="row" tabindex="0" data-g="'+g.name+'"><td class="num mono">'+g.rank+'</td><td><b class="mono">'+g.name+'</b></td><td>'+g.region+'</td>'+
+        '<td><div class="sbar"><div class="track"><i style="width:'+Math.min(100,g.score/108*100)+'%;background:var('+c+')"></i><u style="left:'+(90/108*100)+'%"></u></div><span class="n mono">'+f1(g.score)+'</span></div></td>'+
+        '<td class="num delta"><span class="'+(d>=0?'up':'dn')+'">'+(d>=0?'▲':'▼')+'</span> '+sgn(d)+'</td><td>'+pill(g.move)+'</td><td class="num mono">'+f2(g.avl)+'</td><td class="num mono">'+int(g.sites)+'</td><td class="num mono">'+openIssues(g)+'</td></tr>';
+    }).join('') : '<tr><td colspan="9"><div class="empty">No grids match</div></td></tr>';
+  }
+  $('tbl').addEventListener('click', e=>{
+    const th = e.target.closest('th'); if (th){ const k = th.dataset.k; state.sort = {key:k, dir: state.sort.key===k ? -state.sort.dir : (COLS.filter(c=>c.k===k)[0].asc?1:-1)}; drawTable(); return; }
+    const tr = e.target.closest('tr.row'); if (tr) openGrid(tr.dataset.g);
+  });
+  function drawHeat(){
+    const list = vis().slice().sort((a,b)=>b.score-a.score);
+    const cols = [{k:'s_fuel',n:'Fuel',t:'Fuel efficiency'},{k:'s_underu',n:'DGs',t:'Under-used DGs'},{k:'s_units',n:'Energy',t:'Energy efficiency'}].concat(KPIS.map(x=>({k:x.s,n:x.a,t:x.n,c:x.k})));
+    const head = '<thead><tr><th>Grid</th><th class="gp" colspan="3">EFFICIENCY</th><th class="gp" colspan="10">NETWORK KPIs</th></tr><tr><th>Grid</th>'+cols.map(c=>'<th title="'+c.t+'">'+c.n+'</th>').join('')+'</tr></thead>';
+    const body = list.map(g=>'<tr class="row" tabindex="0" data-g="'+g.name+'"><td><b class="mono">'+g.name+'</b></td>'+cols.map(c=>{
+      const v = g[c.k]; let hh, a;
+      if (v>=5){hh='--good';a='36%';} else if (v>=4){hh='--good';a='14%';} else if (v>=2.5){hh='--warn';a='24%';} else {hh='--crit';a='44%';}
+      return '<td class="c" style="--h:var('+hh+');--a:'+a+'" title="'+c.t+': '+f1(v)+' / 5'+(c.c?' · '+g[c.c]+' open':'')+'">'+f1(v)+'</td>';
+    }).join('')+'</tr>').join('');
+    $('heat').innerHTML = head+'<tbody>'+(body||'<tr><td colspan="14"><div class="empty">No grids match</div></td></tr>')+'</tbody>';
+  }
+  $('heat').addEventListener('click', e=>{ const tr = e.target.closest('tr.row'); if (tr) openGrid(tr.dataset.g); });
+
+  /* ---------- KPI tab ---------- */
+  function cRadar(){
+    const l = vis(); if (!l.length) return noData('chRadar');
+    draw('chRadar',{chart:{type:'radar',height:330},series:[{name:'Selection',data:KPIS.map(k=>+avg(l,g=>g[k.s]).toFixed(2))},{name:'Central',data:KPIS.map(k=>+avg(G,g=>g[k.s]).toFixed(2))}],
+      colors:[css('--accent'),css('--faint')],stroke:{width:2.5},fill:{opacity:[.25,0]},markers:{size:[3,0]},legend:{show:false},
+      xaxis:{categories:KPIS.map(k=>k.a),labels:{style:{colors:KPIS.map(()=>css('--muted')),fontSize:'10.5px'}}},
+      yaxis:{min:0,max:5,tickAmount:5,labels:{formatter:v=>v.toFixed(0),style:{colors:[css('--faint')]}}},
+      plotOptions:{radar:{polygons:{strokeColors:css('--line'),connectorColors:css('--line'),fill:{colors:['transparent']}}}},
+      tooltip:{y:{formatter:v=>v.toFixed(2)+' / 5'}}});
+  }
+  function cKpiOpen(){
+    const l = vis(), arr = KPIS.map(k=>({n:k.a,v:sum(l,g=>g[k.k]||0)})).sort((a,b)=>b.v-a.v);
+    if (!l.length) return noData('chKpiOpen');
+    draw('chKpiOpen',{chart:{type:'bar',height:330},series:[{name:'Open',data:arr.map(a=>a.v)}],colors:[css('--serious')],
+      plotOptions:{bar:{horizontal:true,barHeight:'66%',borderRadius:3}},
+      dataLabels:{enabled:true,style:{fontSize:'11px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:[css('--fg')]},offsetX:6},
+      xaxis:{categories:arr.map(a=>a.n),labels:{formatter:v=>Math.round(v)}},legend:{show:false}});
+  }
+  const allItems = () => { const out = []; vis().forEach(g=>(g.items||[]).forEach(i=>out.push(i))); return out; };
+  function cIssue(){
+    const it = allItems(); if (!it.length) return noData('chIssue');
+    const o = it.filter(isOpen).length, r = it.length-o;
+    draw('chIssue',{chart:{type:'donut',height:330},series:[o,r],labels:['Open','Resolved'],colors:[css('--serious'),css('--good')],
+      stroke:{width:2,colors:[css('--surface')]},legend:{position:'bottom'},
+      dataLabels:{enabled:true,style:{fontSize:'12px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:['#fff']},dropShadow:{enabled:false},formatter:(v,x)=>x.w.config.series[x.seriesIndex]},
+      plotOptions:{pie:{donut:{size:'64%',labels:{show:true,name:{show:true,color:css('--muted'),fontSize:'12px'},value:{show:true,color:css('--fg'),fontSize:'28px',fontWeight:600,fontFamily:'Calibri, Carlito, Arial, sans-serif'},
+        total:{show:true,showAlways:true,label:'Items',color:css('--muted'),formatter:w=>w.globals.seriesTotals.reduce((a,b)=>a+b,0)}}}}}});
+  }
+  function cLoss(){
+    const rows = state.region==='All' ? R : R.filter(r=>r.name===state.region || r.name==='Central');
+    $('lossLegend').innerHTML = COMP.map(c=>'<span><i class="sw" style="background:var('+c.c+')"></i>'+c.n+'</span>').join('');
+    draw('chLoss',{chart:{type:'bar',height:320,stacked:true},series:COMP.map(c=>({name:c.n,data:rows.map(r=>+Math.max(0,MAXC[c.k]-r[c.k]).toFixed(2))})),colors:COMP.map(c=>css(c.c)),
+      plotOptions:{bar:{horizontal:true,barHeight:'62%',borderRadius:3}},stroke:{show:true,width:2,colors:[css('--surface')]},
+      dataLabels:{enabled:true,style:{fontSize:'10px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:['#fff']},formatter:v=>v>=1.5?v.toFixed(1):''},
+      xaxis:{categories:rows.map(r=>r.name),labels:{formatter:v=>Math.round(v)}},legend:{show:false},tooltip:{y:{formatter:v=>v.toFixed(2)+' pts'}}});
+  }
+  function cType(){
+    const it = allItems(); if (!it.length) return noData('chType');
+    const m = {}; it.forEach(i=>{ m[i.kind] = m[i.kind]||{o:0,r:0}; isOpen(i)? m[i.kind].o++ : m[i.kind].r++; });
+    const ks = Object.keys(m).sort((a,b)=>(m[b].o+m[b].r)-(m[a].o+m[a].r));
+    draw('chType',{chart:{type:'bar',height:320,stacked:true},series:[{name:'Open',data:ks.map(k=>m[k].o)},{name:'Resolved',data:ks.map(k=>m[k].r)}],colors:[css('--serious'),css('--good')],
+      plotOptions:{bar:{horizontal:true,barHeight:'66%',borderRadius:3}},stroke:{show:true,width:2,colors:[css('--surface')]},
+      dataLabels:{enabled:true,style:{fontSize:'10px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:['#fff']},formatter:v=>v||''},
+      xaxis:{categories:ks,labels:{formatter:v=>Math.round(v)}},legend:{show:false}});
+  }
+  function cTopOpen(){
+    const l = vis().slice().sort((a,b)=>openIssues(b)-openIssues(a)).slice(0,12); if (!l.length) return noData('chTopOpen');
+    draw('chTopOpen',{chart:{type:'bar',height:300,events:{dataPointSelection:(e,c,cfg)=>openGrid(l[cfg.dataPointIndex].name)}},series:[{name:'Open issues',data:l.map(openIssues)}],colors:[css('--serious')],
+      plotOptions:{bar:{columnWidth:'60%',borderRadius:4,dataLabels:{position:'top'}}},
+      dataLabels:{enabled:true,offsetY:-18,style:{fontSize:'11px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:[css('--fg')]}},
+      xaxis:{categories:l.map(g=>g.name),labels:{style:{fontSize:'11px',fontFamily:'Calibri, Carlito, Arial, sans-serif'}}},legend:{show:false}});
+  }
+
+  /* ---------- performance tab ---------- */
+  const PM = {t_avl:['Availability %',v=>v.toFixed(1)], t_ls:['Load shedding',v=>v.toFixed(1)], t_voice:['Voice Erl',v=>v.toFixed(0)], t_data:['Data GB',v=>v.toFixed(0)], t_rev:['Revenue',v=>(v/1000).toFixed(0)+'K']};
+  function cPerf(){
+    $('pmChips').innerHTML = Object.keys(PM).map(k=>'<button type="button" class="chip" data-m="'+k+'" aria-pressed="'+(state.pm===k)+'">'+PM[k][0]+'</button>').join('');
+    const cols = regColors();
+    draw('chPerf',{chart:{type:'line',height:340},series:REG.map(r=>({name:r.name,data:r[state.pm].map(nz)})).concat([{name:'Central',data:CEN[state.pm].map(nz)}]),colors:cols.concat([css('--fg')]),
+      stroke:{width:REG.map(r=>state.region===r.name?4.5:2.5).concat([2]),dashArray:REG.map(()=>0).concat([5]),curve:'smooth'},markers:{size:0,hover:{size:5}},
+      xaxis:{categories:M,axisBorder:{show:false},axisTicks:{show:false}},yaxis:{labels:{formatter:PM[state.pm][1]}},legend:{position:'top',horizontalAlign:'left'},
+      tooltip:{shared:true,intersect:false,y:{formatter:v=>PM[state.pm][1](v)}}});
+  }
+  $('pmChips').addEventListener('click', e=>{ const b = e.target.closest('.chip'); if (b){ state.pm = b.dataset.m; cPerf(); } });
+  function cYoy(){
+    draw('chYoy',{chart:{type:'bar',height:290},series:[{name:'YoY',data:REG.map(r=>+(r.yoy*100).toFixed(1))}],colors:[o=>o.value>=0?css('--good'):css('--crit')],
+      plotOptions:{bar:{columnWidth:'58%',borderRadius:4,dataLabels:{position:'top'}}},
+      dataLabels:{enabled:true,offsetY:-18,style:{fontSize:'11px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:[css('--fg')]},formatter:v=>v.toFixed(1)+'%'},
+      xaxis:{categories:REG.map(r=>r.name.replace('Central-','C-'))},yaxis:{labels:{formatter:v=>v.toFixed(0)+'%'}},legend:{show:false}});
+  }
+  function cLossSites(){
+    const defs = [['Voice >100 Erl','voice_loss','--s1'],['Data >100 GB','data_loss','--s2'],['Revenue >100K','rev_loss','--s3']];
+    $('lgLossSites').innerHTML = defs.map(d=>'<span><i class="sw" style="background:var('+d[2]+')"></i>'+d[0]+'</span>').join('');
+    draw('chLossSites',{chart:{type:'bar',height:290},series:defs.map(d=>({name:d[0],data:REG.map(r=>r[d[1]]||0)})),colors:defs.map(d=>css(d[2])),
+      plotOptions:{bar:{columnWidth:'72%',borderRadius:3}},stroke:{show:true,width:2,colors:['transparent']},
+      xaxis:{categories:REG.map(r=>r.name.replace('Central-','C-'))},legend:{show:false}});
+  }
+  function cUnits(){
+    draw('chUnits',{chart:{type:'bar',height:290},series:[{name:'Units YTD',data:REG.map(r=>Math.round(r.units_ytd))}],colors:[o=>o.value>3420?css('--crit'):css('--good')],
+      plotOptions:{bar:{columnWidth:'58%',borderRadius:4,dataLabels:{position:'top'}}},
+      dataLabels:{enabled:true,offsetY:-18,style:{fontSize:'10px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:[css('--fg')]},formatter:v=>int(v)},
+      xaxis:{categories:REG.map(r=>r.name.replace('Central-','C-'))},yaxis:{min:0,max:4600,tickAmount:4,labels:{formatter:v=>int(v)}},legend:{show:false},
+      annotations:{yaxis:[{y:3420,borderColor:css('--warn'),strokeDashArray:4}]}});
+  }
+  function cFuel(){
+    draw('chFuel',{chart:{type:'bar',height:290},series:[{name:'Fuel MTD',data:REG.map(r=>+r.fuel.toFixed(0))}],colors:[o=>o.value>220?css('--crit'):css('--good')],
+      plotOptions:{bar:{columnWidth:'58%',borderRadius:4,dataLabels:{position:'top'}}},
+      dataLabels:{enabled:true,offsetY:-18,style:{fontSize:'11px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:[css('--fg')]}},
+      xaxis:{categories:REG.map(r=>r.name.replace('Central-','C-'))},yaxis:{min:0,max:280,tickAmount:4},legend:{show:false},
+      annotations:{yaxis:[{y:220,borderColor:css('--warn'),strokeDashArray:4}]}});
+  }
+  function cDG(){
+    draw('chDG',{chart:{type:'bar',height:290},series:[{name:'Not operational',data:REG.map(r=>r.notop||0)},{name:'Under-used (<10 L)',data:REG.map(r=>r.underu||0)}],colors:[css('--s2'),css('--s1')],
+      plotOptions:{bar:{columnWidth:'66%',borderRadius:3}},stroke:{show:true,width:2,colors:['transparent']},
+      dataLabels:{enabled:true,offsetY:-18,style:{fontSize:'10px',fontFamily:'Calibri, Carlito, Arial, sans-serif',colors:[css('--muted')]}},
+      xaxis:{categories:REG.map(r=>r.name.replace('Central-','C-'))},legend:{position:'top',horizontalAlign:'left'}});
+  }
+
+  /* ---------- drawer ---------- */
+  const gridByName = n => G.filter(g=>g.name===n)[0];
+  const DM = {t_avl:['Availability',v=>v.toFixed(2)+'%'], t_ls:['Load shed',v=>v.toFixed(2)], t_voice:['Voice',v=>v.toFixed(0)], t_data:['Data',v=>v.toFixed(0)], t_rev:['Revenue',v=>(v/1000).toFixed(0)+'K']};
+  function openGrid(n){
+    if (!gridByName(n)) return;
+    state.open = n; state.metric = 't_avl'; state.showRes = false;
+    $('drawer').classList.add('on'); $('scrim').classList.add('on'); $('drawer').setAttribute('aria-hidden','false');
+    drawDrawer(); $('dbody').scrollTop = 0; setTimeout(()=>{ const b = $('closeBtn'); if (b) b.focus(); }, 40);
+  }
+  function closeGrid(){
+    state.open = null; $('drawer').classList.remove('on'); $('scrim').classList.remove('on'); $('drawer').setAttribute('aria-hidden','true');
+    if (charts.chTrend){ try{charts.chTrend.destroy();}catch(e){} delete charts.chTrend; }
+  }
+  $('scrim').addEventListener('click', closeGrid);
+  function drawDrawer(){
+    const g = gridByName(state.open); if (!g) return; const d = delta(g);
+    $('dhead').innerHTML = '<div><div class="dtitle"><span class="mono">'+g.name+'</span>'+pill(g.move)+'</div><p style="color:var(--muted);font-size:12.5px;margin-top:4px">'+g.region+' · rank '+g.rank+'/47 · '+int(g.sites)+' sites</p></div><button class="iconbtn" id="closeBtn" type="button" aria-label="Close">✕</button>';
+    $('closeBtn').addEventListener('click', closeGrid);
+    const comps = COMP.map(c=>{ const v = g[c.k], mx = MAXC[c.k], lost = Math.max(0,mx-v);
+      return '<div class="comp"><span>'+c.n+'</span><div class="track"><i style="width:'+Math.min(100,v/mx*100)+'%;background:var('+c.c+')"></i></div><span class="mono" style="text-align:right">'+f1(v)+'/'+mx+(lost>0.05?' <span style="color:var(--crit)">−'+f1(lost)+'</span>':'')+'</span></div>'; }).join('');
+    const k10 = KPIS.map(x=>{ const v = g[x.s], c = v>=4?'--good':v>=2.5?'--warn':'--crit';
+      return '<div><span>'+x.n+'</span><b>'+f1(v)+'<span style="font-size:11px;color:var(--muted);font-weight:500"> /5</span> <i class="dot" style="--c:var('+c+');width:7px;height:7px"></i></b><span>'+(g[x.k]||0)+' open</span></div>'; }).join('');
+    const mixOrder = ['Platinum +','Platinum','Gold','Silver','Bronze','Strategic','LRS'], trk = g.trk||{mix:{}};
+    const mxv = Math.max.apply(null, mixOrder.map(k=>trk.mix[k]||0).concat([1]));
+    const mix = mixOrder.map(k=>{ const v = trk.mix[k]||0; return '<div class="mix"><span>'+k+'</span><div class="track"><i style="width:'+(v/mxv*100)+'%"></i></div><span class="mono" style="text-align:right">'+v+'</span></div>'; }).join('');
+    const tabs = Object.keys(DM).map(k=>'<button type="button" class="chip" data-m="'+k+'" aria-pressed="'+(state.metric===k)+'">'+DM[k][0]+'</button>').join('');
+    const all = g.items||[], nOpen = all.filter(isOpen).length;
+    const items = all.filter(i=>state.showRes||isOpen(i));
+    const rows = items.map(i=>{ const o = isOpen(i); return '<tr><td>'+esc(i.kind)+'</td><td class="mono">'+esc(i.site||'–')+'</td><td><span class="pill" style="--c:var('+(o?'--serious':'--good')+')"><b>'+(o?'●':'✓')+'</b>'+esc(i.status)+'</span></td></tr>'; }).join('');
+    $('dbody').innerHTML =
+      '<div class="stats"><div class="stat"><div class="v">'+f1(g.score)+'<small style="font-size:14px;color:var(--muted)">%</small></div><div class="l">'+META.period+'</div></div><div class="stat"><div class="v" style="color:var(--muted)">'+f1(g.last)+'</div><div class="l">'+META.last+'</div></div><div class="stat"><div class="v '+(d>=0?'up':'dn')+'">'+(d>=0?'▲':'▼')+' '+Math.abs(d).toFixed(1)+'</div><div class="l">Change</div></div></div>'+
+      '<section class="card"><h2>Score build-up <em>max 108</em></h2>'+comps+'</section>'+
+      '<section class="card"><h2>10 network KPIs</h2><div class="k10">'+k10+'</div></section>'+
+      '<section class="card"><h2>Trend '+M[0]+'–'+M[M.length-1]+' <span class="grp" id="mtabs">'+tabs+'</span></h2><div id="chTrend"></div></section>'+
+      '<section class="card"><h2>Sites <em>'+(trk.below98||0)+' below 98% · '+(trk.chronic||0)+' chronic</em></h2>'+mix+'</section>'+
+      '<section class="card"><h2>Open items <em>'+nOpen+' open · '+(all.length-nOpen)+' resolved</em><label class="toggle"><input type="checkbox" id="showRes" '+(state.showRes?'checked':'')+'> Resolved</label></h2>'+
+        (rows?'<div class="tablewrap" style="max-height:300px;overflow:auto"><table><thead><tr><th>Type</th><th>Site</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty">Nothing open</div>')+'</section>';
+    $('mtabs').addEventListener('click', e=>{ const b = e.target.closest('.chip'); if (!b) return; state.metric = b.dataset.m; [].forEach.call($('mtabs').children, c=>c.setAttribute('aria-pressed', c.dataset.m===state.metric)); drawTrend(); });
+    $('showRes').addEventListener('change', e=>{ state.showRes = e.target.checked; const sc = $('dbody').scrollTop; drawDrawer(); $('dbody').scrollTop = sc; });
+    drawTrend();
+  }
+  function drawTrend(){
+    const g = gridByName(state.open); if (!g) return; const fmt = DM[state.metric][1];
+    draw('chTrend',{chart:{type:'line',height:230},series:[{name:g.name,data:g[state.metric].map(nz)},{name:'Central',data:CEN[state.metric].map(nz)}],colors:[css('--accent'),css('--faint')],
+      stroke:{width:[3,2],dashArray:[0,5],curve:'smooth'},markers:{size:[4,0],strokeWidth:2,strokeColors:css('--surface')},
+      xaxis:{categories:M,axisBorder:{show:false},axisTicks:{show:false}},yaxis:{labels:{formatter:v=>state.metric==='t_rev'?(v/1000).toFixed(0)+'K':v.toFixed(state.metric==='t_avl'||state.metric==='t_ls'?1:0)}},
+      legend:{show:false},tooltip:{shared:true,intersect:false,y:{formatter:v=>fmt(v)}}});
+  }
+
+  /* ---------- theme, fullscreen ---------- */
+  const themeIcon = () => {};   /* icon is drawn by the site theme toggle */
+  new MutationObserver(()=>{ renderAll(); if (state.open) drawDrawer(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ themeIcon(); renderAll(); if (state.open) drawDrawer(); }); } catch(e){}
+  $('fsBtn').addEventListener('click', ()=>{
+    try{
+      if (document.fullscreenElement) { document.exitFullscreen(); }
+      else { const p = document.documentElement.requestFullscreen(); if (p && p.catch) p.catch(()=>{}); }
+    }catch(e){}
+  });
+
+  /* ---------- render ---------- */
+  function drawTab(){
+    cGauge(); cRegion(); cDonuts(); cRank(); drawLists(); cAvl();
+    drawWall(); cBub(); cMovers(); drawHeat(); drawTable();
+    cRadar(); cKpiOpen(); cIssue(); cLoss(); cType(); cTopOpen();
+    cPerf(); cYoy(); cLossSites(); cUnits(); cFuel(); cDG();
+  }
+  function renderAll(){ drawFilters(); drawKpis(); drawTab(); }
+  themeIcon(); setTab(state.tab); drawFilters(); drawKpis();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  /* ------------------------------------------------------------------ data */
+  const D = JSON.parse(document.getElementById('report-data').textContent);
+  const R = D.regions, CEN = R[0], REG = R.slice(1), M = D.months, META = D.meta;
+  const REGN = REG.map(r => r.name);
+  const TIERS = ['Platinum +','Platinum','Gold','Silver','Bronze','Strategic','LRS'];
+  const G = D.grids.map(g => {
+    const mix = (g.trk && g.trk.mix) || {};
+    g.mix = mix; g.tot = TIERS.reduce((a,t) => a + (mix[t]||0), 0);
+    g.prem = g.tot ? ((mix['Platinum +']||0) + (mix['Platinum']||0)) / g.tot * 100 : null;
+    return g;
+  });
+
+  /* measures: t = monthly series key, good = +1 higher is better, -1 lower is better */
+  const F = {
+    avl:  {n:'Availability', sh:'Avail',  t:'t_avl',   good:1,  c:'--s1', f:v=>v.toFixed(2)+'%', ax:v=>v.toFixed(1)+'%', step:1,      stepL:'1 pt'},
+    ls:   {n:'Load shedding', sh:'LS', t:'t_ls',    good:-1, c:'--s4', f:v=>v.toFixed(2),     ax:v=>v.toFixed(1),     step:1,      stepL:'1 unit'},
+    voice:{n:'Voice', sh:'Voice',         t:'t_voice', good:1,  c:'--s2', f:v=>v.toFixed(0),     ax:v=>v.toFixed(0),     step:100,    stepL:'100'},
+    data: {n:'Data', sh:'Data',          t:'t_data',  good:1,  c:'--s3', f:v=>v.toFixed(0),     ax:v=>v.toFixed(0),     step:100,    stepL:'100'},
+    rev:  {n:'Revenue', sh:'Revenue',       t:'t_rev',   good:1,  c:'--s5', f:v=>(v/1000).toFixed(0)+'K', ax:v=>(v/1000).toFixed(0)+'K', step:100000, stepL:'100K'},
+    prem: {n:'Premium-tier share', t:null, good:1,  c:'--accent', f:v=>v.toFixed(1)+'%', ax:v=>v.toFixed(0)+'%', step:10, stepL:'10 pts'},
+    sites:{n:'Sites',         t:null,      good:0,  c:'--faint', f:v=>v.toFixed(0), ax:v=>v.toFixed(0), step:10, stepL:'10 sites'}
+  };
+  const MK = ['avl','ls','voice','data','rev'];
+  // y-change formatter for "per step of X" statements
+  const fD = (k,v) => k==='rev' ? (v/1000).toFixed(1)+'K' : k==='avl' ? v.toFixed(2)+' pt' : k==='ls' ? v.toFixed(2) : k==='prem' ? v.toFixed(1)+' pts' : v.toFixed(0);
+  const PAIRS = [
+    {id:'avl_rev',  x:'avl',   y:'rev',   t:'Availability vs Revenue'},
+    {id:'data_voice',x:'data', y:'voice', t:'Data vs Voice'},
+    {id:'ls_avl',   x:'ls',    y:'avl',   t:'Load shedding vs Availability'},
+    {id:'avl_data', x:'avl',   y:'data',  t:'Availability vs Data'},
+    {id:'avl_voice',x:'avl',   y:'voice', t:'Availability vs Voice'}
+  ];
+  const GROUPS = [{k:'95-108%',n:'95%+'},{k:'90-95%',n:'90–95%'},{k:'80-90%',n:'80–90%'},{k:'<80%',n:'<80%'}];
+  const TIERCOL = {'Platinum +':'#7C6CFF','Platinum':'#3987e5','Gold':'#c98500','Silver':'#93A3C2','Bronze':'#d95926','Strategic':'#199e70','LRS':'#d55181'};
+  const state = {tab:'overview', region:'All', group:'all', gm:'rev', cx:'avl', cy:'rev', sm:'t_avl', q:'', sort:{k:'rev',d:-1}, rot:false};
+
+  /* ---------------------------------------------------------------- helpers */
+  const $ = id => document.getElementById(id);
+  $('a_periodLbl').textContent = META.period + ' · ' + META.title.replace(/.*\(/,'').replace(')','');
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const isDark = () => { const t = document.documentElement.getAttribute('data-theme'); return t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const sum = (a,f) => a.reduce((x,y)=>x+f(y),0);
+  const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : NaN;
+  const median = a => { const s=[...a].sort((x,y)=>x-y), n=s.length; return n ? (n%2 ? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2) : NaN; };
+  const sg = (v,d=2) => (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(d);
+
+  function pearson(x,y){
+    const n=x.length; if(n<3) return NaN;
+    const mx=mean(x), my=mean(y); let sxy=0,sxx=0,syy=0;
+    for(let i=0;i<n;i++){ const a=x[i]-mx, b=y[i]-my; sxy+=a*b; sxx+=a*a; syy+=b*b; }
+    return (sxx && syy) ? sxy/Math.sqrt(sxx*syy) : NaN;
+  }
+  function reg(list,xk,yk){
+    const L = list.filter(g=>g[xk]!=null && g[yk]!=null);
+    const x=L.map(g=>+g[xk]), y=L.map(g=>+g[yk]), r=pearson(x,y);
+    if (isNaN(r)) return null;
+    const mx=mean(x), my=mean(y); let sxy=0,sxx=0;
+    for(let i=0;i<x.length;i++){ sxy+=(x[i]-mx)*(y[i]-my); sxx+=(x[i]-mx)*(x[i]-mx); }
+    const m=sxy/sxx; return {m, b:my-m*mx, r, r2:r*r, n:x.length, L};
+  }
+  const strength = r => { const a=Math.abs(r); return a>=.7?'strong':a>=.4?'moderate':a>=.2?'weak':'negligible'; };
+  const dirOf = r => r>0 ? 'positive' : 'negative';
+  const wm = (list,tk,i) => { const L=list.filter(g=>g[tk] && g[tk][i]!=null); const w=sum(L,g=>g.sites); return w ? sum(L,g=>g.sites*g[tk][i])/w : null; };
+  const wavg = (list,k) => { const L=list.filter(g=>g[k]!=null); const w=sum(L,g=>g.sites); return w ? sum(L,g=>g.sites*g[k])/w : null; };
+  const regCol = name => css('--s'+(REGN.indexOf(name)+1));
+  const short = n => n==='Central' ? 'Central' : n.replace('Central-','C');
+  const vis = () => G.filter(g => (state.region==='All' || g.region===state.region) && (state.group==='all' || g.bin===state.group));
+
+  /* global reference points (all 47 grids, so quadrant calls do not shift when a filter is on) */
+  const MED = {avl: median(G.map(g=>g.avl)), rev: median(G.map(g=>g.rev))};
+  const GFIT = reg(G,'avl','rev');
+  G.forEach(g => { g.exp = GFIT.m*g.avl + GFIT.b; g.gap = (g.rev-g.exp)/g.exp*100; });
+  const QUADS = {
+    star:   {n:'Star',    c:'--good',    d:'Availability and revenue both above median'},
+    protect:{n:'Protect', c:'--crit',    d:'High revenue but availability below median: fix first'},
+    grow:   {n:'Grow',    c:'--accent',  d:'Healthy availability, revenue below median: traffic / commercial push'},
+    fix:    {n:'Fix',     c:'--warn',    d:'Below median on both'}
+  };
+  const quadOf = g => g.avl>=MED.avl ? (g.rev>=MED.rev?'star':'grow') : (g.rev>=MED.rev?'protect':'fix');
+  const qpill = q => '<span class="pill" style="--c:var('+QUADS[q].c+')"><b>●</b>'+QUADS[q].n+'</span>';
+
+  /* ---------------------------------------------------------------- charts */
+  const charts = {};
+  function mrg(a,b){
+    if (Array.isArray(b) || b===null || typeof b!=='object') return b===undefined ? a : b;
+    const o = Object.assign({}, a);
+    Object.keys(b).forEach(k => { o[k] = (a && a[k] && typeof a[k]==='object' && !Array.isArray(a[k])) ? mrg(a[k],b[k]) : b[k]; });
+    return o;
+  }
+  function draw(id, opts){
+    const el = $(id); if (!el) return;
+    if (charts[id]) { try { charts[id].destroy(); } catch(e){} delete charts[id]; }
+    el.innerHTML = '';
+    const dark = isDark();
+    const base = {
+      chart:{background:'transparent', toolbar:{show:false}, fontFamily:css('--font'), foreColor:css('--muted'), animations:{enabled:!reduce}, zoom:{enabled:false}},
+      theme:{mode:dark?'dark':'light'},
+      grid:{borderColor:css('--line'), strokeDashArray:3},
+      tooltip:{theme:dark?'dark':'light'},
+      dataLabels:{enabled:false}, legend:{show:false}
+    };
+    const c = new ApexCharts(el, mrg(base, opts)); charts[id] = c; c.render();
+  }
+  const noData = id => { const el=$(id); if(charts[id]){try{charts[id].destroy()}catch(e){} delete charts[id];} if(el) el.innerHTML = '<div class="empty">No grids match the current filters.</div>'; };
+
+  /* scatter with per-subregion colours + regression line */
+  function scatter(id, list, xk, yk, o){
+    o = o || {};
+    const X=F[xk], Y=F[yk], st = reg(list,xk,yk);
+    const L = list.filter(g=>g[xk]!=null && g[yk]!=null);
+    if (!st) return noData(id);
+    const names = REGN.filter(n => L.some(g=>g.region===n));
+    const series = names.map(n => ({name:n, type:'scatter', data:L.filter(g=>g.region===n).map(g=>({x:+g[xk], y:+g[yk], g:g.name, s:g.sites}))}));
+    const xs = L.map(g=>+g[xk]), ys = L.map(g=>+g[yk]);
+    const x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+    const px=(x1-x0)*.06||1, py=(y1-y0)*.08||1;
+    series.push({name:'Trend', type:'line', data:[{x:x0,y:st.m*x0+st.b},{x:x1,y:st.m*x1+st.b}]});
+    const colors = names.map(regCol).concat([css('--fg')]);
+    const ann = {xaxis:[{x:mean(xs), borderColor:css('--faint'), strokeDashArray:4}], yaxis:[{y:mean(ys), borderColor:css('--faint'), strokeDashArray:4}]};
+    draw(id, {
+      chart:{type:'line', height:o.h||360},
+      series, colors,
+      stroke:{width:names.map(()=>0).concat([2.5]), dashArray:names.map(()=>0).concat([0])},
+      markers:{size:names.map(()=>6).concat([0]), strokeWidth:1, strokeColors:css('--surface'), hover:{sizeOffset:3}},
+      xaxis:{type:'numeric', min:x0-px, max:x1+px, tickAmount:7, title:{text:X.n}, labels:{formatter:v=>X.ax(+v)}, axisBorder:{show:false}},
+      yaxis:{min:y0-py, max:y1+py, tickAmount:6, title:{text:Y.n}, labels:{formatter:v=>Y.ax(+v)}},
+      annotations:ann,
+      legend:{show:true, position:'top', horizontalAlign:'left', markers:{size:6}, showForSingleSeries:false, onItemClick:{toggleDataSeries:true}},
+      tooltip:{shared:false, intersect:true, custom:({seriesIndex,dataPointIndex,w})=>{
+        const p = w.config.series[seriesIndex].data[dataPointIndex]; if(!p||!p.g) return '';
+        const reg_ = w.config.series[seriesIndex].name;
+        return '<div style="padding:8px 10px;font-size:12px"><b>'+esc(p.g)+'</b> <span style="opacity:.7">'+esc(reg_)+'</span><br>'+X.n+': <b>'+X.f(p.x)+'</b><br>'+Y.n+': <b>'+Y.f(p.y)+'</b><br>Sites: '+p.s+'</div>';
+      }}
+    });
+  }
+
+  /* ---------------------------------------------------------- text builders */
+  function statPills(st, extra){
+    if (!st) return '';
+    const c = st.r>0 ? '--s3' : '--s2';
+    return '<span class="pill" style="--c:var('+c+')">r <b>'+sg(st.r)+'</b> '+strength(st.r)+' '+dirOf(st.r)+'</span>'
+      + '<span class="pill">R² <b>'+(st.r2*100).toFixed(0)+'%</b></span>'
+      + '<span class="pill">n <b>'+st.n+'</b> grids</span>' + (extra||'');
+  }
+  function pairNote(list, xk, yk){
+    const st = reg(list,xk,yk), X=F[xk], Y=F[yk];
+    if (!st) return 'Not enough grids.';
+    const dy = st.m * X.step;
+    let s = Math.abs(st.r) < .2
+      ? '<b>No meaningful link</b> · r = '+sg(st.r)
+      : '<b>'+strength(st.r)+' '+dirOf(st.r)+'</b> · r = '+sg(st.r)+' · +'+X.stepL+' ≈ <b>'+(dy>=0?'+':'−')+fD(yk,Math.abs(dy))+'</b> '+Y.n+' · R² '+(st.r2*100).toFixed(0)+'%';
+    return s;
+  }
+
+  /* ------------------------------------------------------------ filters bar */
+  function drawFilters(){
+    const regs = ['All'].concat(REGN);
+    const rc = regs.map(r => '<button class="chip" type="button" data-region="'+r+'" aria-pressed="'+(state.region===r)+'" '+(r==='All'?'':'style="--c:var(--s'+(REGN.indexOf(r)+1)+')"')+'>'+(r==='All'?'':'<i class="dot" style="--c:var(--s'+(REGN.indexOf(r)+1)+')"></i>')+(r==='All'?'All Central':r)+'</button>').join('');
+    const gc = [{k:'all',n:'All'}].concat(GROUPS).map(x => '<button class="chip" type="button" data-group="'+x.k+'" aria-pressed="'+(state.group===x.k)+'">'+x.n+'</button>').join('');
+    const L = vis();
+    $('a_filters').innerHTML = '<div class="grp"><span class="glab">Sub-region</span>'+rc+'</div><span class="sep"></span><div class="grp"><span class="glab">Grid group</span>'+gc+'</div>'
+      + '<span class="count">'+L.length+' grids · '+L.reduce((a,g)=>a+g.sites,0).toLocaleString('en-US')+' sites</span>';
+  }
+
+  /* -------------------------------------------------------------------- KPIs */
+  function drawKpis(){
+    const L = vis();
+    $('a_kpis').innerHTML = MK.map(k => '<div class="kpi" style="--c:var('+F[k].c+')"><span class="lab">'+F[k].n+'</span><span class="val" id="kv-'+k+'">–</span><span class="sub" id="ks-'+k+'"></span><div class="sp" id="ksp-'+k+'"></div></div>').join('');
+    if (!L.length) return;
+    MK.forEach(k => {
+      const ser = M.map((_,i) => wm(L,F[k].t,i));
+      const ix = ser.map((v,i)=>v==null?-1:i).filter(i=>i>=0), nn = ix.map(i=>ser[i]), cur = nn[nn.length-1], prev = nn[nn.length-2], pl = M[ix[ix.length-2]], late = ix[ix.length-1]!==M.length-1 ? ' · '+M[ix[ix.length-1]]+' latest' : '';  // revenue lags one month
+      $('kv-'+k).textContent = F[k].f(cur);
+      if (prev != null && prev !== 0) {
+        const d = (cur-prev)/prev*100, good = d*F[k].good > 0;
+        $('ks-'+k).innerHTML = '<span class="'+(Math.abs(d)<.05?'':(good?'up':'dn'))+'">'+(d>=0?'▲':'▼')+' '+Math.abs(d).toFixed(2)+'%</span> vs '+pl+late;
+      }
+      draw('ksp-'+k, {chart:{type:'area', height:44, sparkline:{enabled:true}}, series:[{name:F[k].n, data:ser}], colors:[css(F[k].c)],
+        stroke:{width:2, curve:'smooth'}, fill:{type:'gradient', gradient:{opacityFrom:.35, opacityTo:0}}, xaxis:{categories:M},
+        tooltip:{x:{show:true}, y:{formatter:v=>F[k].f(v)}}, grid:{padding:{left:0,right:0,top:2,bottom:0}}});
+    });
+  }
+
+  /* ---------------------------------------------------------------- overview */
+  function allPairs(L){
+    const out = [];
+    for (let i=0;i<MK.length;i++) for (let j=i+1;j<MK.length;j++){ const st = reg(L,MK[i],MK[j]); if (st) out.push({a:MK[i], b:MK[j], r:st.r}); }
+    return out.sort((p,q)=>Math.abs(q.r)-Math.abs(p.r));
+  }
+  function drawOverview(){
+    const L = vis();
+    if (L.length < 4) { $('insights').innerHTML = '<div class="card c12"><div class="empty">Select at least 4 grids to compute relationships.</div></div>'; noData('chHeat'); noData('chPairRank'); return; }
+    const ps = allPairs(L), top = ps[0], ar = reg(L,'avl','rev'), lr = reg(L,'ls','avl');
+    const protect = L.filter(g=>quadOf(g)==='protect').sort((a,b)=>b.rev-a.rev);
+    const byReg = REGN.map(n => ({n, l:L.filter(g=>g.region===n)})).filter(x=>x.l.length).map(x => ({n:x.n, avl:wavg(x.l,'avl'), rev:wavg(x.l,'rev')}));
+    const lowA = byReg.slice().sort((a,b)=>a.avl-b.avl)[0];
+    const pr_ = reg(L.filter(g=>g.prem!=null),'prem','rev');
+    const cards = [
+      {c:'--accent', keep:true, t:'Strongest link', h:F[top.a].n+' ↔ '+F[top.b].n, p:'<b>r = '+sg(top.r)+'</b> ('+strength(top.r)+' '+dirOf(top.r)+') across '+L.length+' grids.'},
+      {c:'--s5', t:'Availability → Revenue', h: ar ? 'r = '+sg(ar.r)+' · R² '+(ar.r2*100).toFixed(0)+'%' : '–', p: ar ? (Math.abs(ar.r)<.2 ? 'r = <b>'+sg(ar.r)+'</b>: <b>no meaningful link</b> between grid availability and revenue per site in this selection.' : 'r = <b>'+sg(ar.r)+'</b>. +1 pt availability ≈ <b>'+(ar.m>=0?'+':'−')+fD('rev',Math.abs(ar.m))+'</b> revenue per site.') : 'Not enough data.'},
+      {c:'--s4', t:'Load shedding → Availability', h: lr ? 'r = '+sg(lr.r) : '–', p: lr ? (Math.abs(lr.r)<.2 ? 'No meaningful link between LS and availability here (r = <b>'+sg(lr.r)+'</b>).' : 'Higher LS goes with <b>'+(lr.r<0?'lower':'higher')+'</b> availability ('+strength(lr.r)+'). Each +1 LS ≈ <b>'+sg(lr.m,2)+' pt</b>.') : 'Not enough data.'},
+      {c:'--crit', keep:true, t:'Protect first', h: protect.length+' grid'+(protect.length===1?'':'s'), p: protect.length ? 'High revenue, availability below median: <b>'+protect.slice(0,4).map(g=>esc(g.name)).join(', ')+'</b>'+(protect.length>4?' +'+(protect.length-4)+' more':'')+'.' : 'No high-revenue grid is below median availability.'},
+      {c:'--s3', t:'Revenue driver', h: pr_ ? 'Premium-tier share · R² '+(pr_.r2*100).toFixed(0)+'%' : '–', p: pr_ ? 'Premium (Platinum+/Platinum) share vs revenue: r = <b>'+sg(pr_.r)+'</b>. If tiers are assigned by revenue this is partly by construction, so treat as a mix indicator.' : 'Not enough data.'},
+      {c:'--warn', keep:true, t:'Lowest availability', h: lowA.n, p:'Site-weighted availability <b>'+F.avl.f(lowA.avl)+'</b> in this selection.'}
+    ];
+    $('insights').innerHTML = cards.map(x => '<div class="ins c4" style="--c:var('+x.c+')"><div class="t">'+x.t+'</div><div class="h">'+x.h+'</div>'+(x.keep?'<p>'+x.p+'</p>':'')+'</div>').join('');
+
+    // heatmap (reversed so the diagonal runs top-left → bottom-right)
+    const series = MK.slice().reverse().map(a => ({name:F[a].sh, data:MK.map(b => ({x:F[b].sh, y: a===b ? 1 : +(reg(L,a,b)||{r:0}).r.toFixed(2)}))}));
+    draw('chHeat', {chart:{type:'heatmap', height:340}, series, dataLabels:{enabled:true, style:{colors:['#fff'], fontSize:'12px', fontFamily:css('--mono')}, formatter:v=>v.toFixed(2)},
+      plotOptions:{heatmap:{radius:6, enableShades:false, colorScale:{ranges:[
+        {from:-1,to:-.7,color:'#b03030',name:'strong −'},{from:-.7,to:-.4,color:'#d2603a',name:'moderate −'},{from:-.4,to:-.2,color:'#c98a4a',name:'weak −'},
+        {from:-.2,to:.2,color:'#5b6b8c',name:'~ none'},{from:.2,to:.4,color:'#4a9d86',name:'weak +'},{from:.4,to:.7,color:'#1f9d6a',name:'moderate +'},{from:.7,to:1.01,color:'#0a7d4f',name:'strong +'}]}}},
+      stroke:{width:2, colors:[css('--surface')]}, grid:{show:false}, legend:{show:true, position:'bottom', fontSize:'11px'}, xaxis:{labels:{style:{fontSize:'11px'}, rotate:0, hideOverlappingLabels:false}, tooltip:{enabled:false}}});
+
+    // pair ranking
+    const pr = ps.slice().sort((p,q)=>Math.abs(q.r)-Math.abs(p.r));
+    draw('chPairRank', {chart:{type:'bar', height:340}, series:[{name:'r', data:pr.map(p=>+p.r.toFixed(2))}],
+      plotOptions:{bar:{horizontal:true, borderRadius:4, barHeight:'66%', distributed:true}}, colors:pr.map(p=>p.r>=0?css('--s3'):css('--s2')),
+      xaxis:{categories:pr.map(p=>F[p.a].sh+' ↔ '+F[p.b].sh+'   '+sg(p.r)), min:-1, max:1, tickAmount:8, labels:{formatter:v=>(+v).toFixed(1)}},
+      tooltip:{y:{formatter:v=>'r = '+sg(v)}}, annotations:{xaxis:[{x:0, borderColor:css('--faint')}]}});
+  }
+
+  /* ---------------------------------------------------------- critical pairs */
+  function dual(id, L, xk, yk){
+    const X=F[xk], Y=F[yk];
+    const sx = M.map((_,i)=>wm(L,X.t,i)), sy = M.map((_,i)=>wm(L,Y.t,i));
+    const ax = (K,s,opp) => ({opposite:opp, title:{text:K.n, style:{color:css(K.c)}}, labels:{style:{colors:css(K.c)}, formatter:v=>K.ax(+v)}, min:Math.min(...s.filter(v=>v!=null))*(K===F.rev||K===F.voice||K===F.data?.97:.998), max:Math.max(...s.filter(v=>v!=null))*(K===F.rev||K===F.voice||K===F.data?1.03:1.002), tickAmount:5});
+    draw(id, {chart:{type:'line', height:360}, series:[{name:X.n, data:sx}, {name:Y.n, data:sy}], colors:[css(X.c), css(Y.c)],
+      stroke:{width:3, curve:'straight'}, markers:{size:4, strokeWidth:0}, xaxis:{categories:M, axisBorder:{show:false}},
+      yaxis:[ax(X,sx,false), ax(Y,sy,true)], legend:{show:true, position:'top', horizontalAlign:'left'},
+      tooltip:{shared:true, intersect:false, y:[{formatter:v=>X.f(v)},{formatter:v=>Y.f(v)}]}});
+  }
+  function drawPairs(){
+    const L = vis();
+    $('pairBlocks').innerHTML = PAIRS.map(p =>
+      '<div class="sechead"><h2>'+p.t+'</h2></div><div class="grid12">'
+      + '<div class="card c7"><h2>Grid scatter <em>'+F[p.x].n+' (x) · '+F[p.y].n+' (y)</em></h2><div class="pills" id="pp-'+p.id+'"></div><div class="note" id="pn-'+p.id+'"></div><div id="sc-'+p.id+'"></div></div>'
+      + '<div class="card c5"><h2>Monthly co-movement</h2><div id="du-'+p.id+'"></div></div></div>').join('');
+    if (L.length < 4) { PAIRS.forEach(p => { noData('sc-'+p.id); noData('du-'+p.id); }); noData('chMonthR'); return; }
+    PAIRS.forEach(p => {
+      const st = reg(L,p.x,p.y);
+      $('pp-'+p.id).innerHTML = statPills(st);
+      $('pn-'+p.id).innerHTML = pairNote(L,p.x,p.y);
+      scatter('sc-'+p.id, L, p.x, p.y);
+      dual('du-'+p.id, L, p.x, p.y);
+    });
+    // monthly r
+    const series = PAIRS.map(p => ({name:F[p.x].n+' ↔ '+F[p.y].n, data:M.map((_,i) => {
+      const l = L.filter(g=>g[F[p.x].t] && g[F[p.y].t] && g[F[p.x].t][i]!=null && g[F[p.y].t][i]!=null);
+      const r = pearson(l.map(g=>g[F[p.x].t][i]), l.map(g=>g[F[p.y].t][i])); return isNaN(r)?null:+r.toFixed(2); })}));
+    const cols = [css('--s5'), css('--s2'), css('--s4'), css('--s3'), css('--s1')];
+    $('lgMonthR').innerHTML = series.map((s,i)=>'<span><i class="sw" style="background:'+cols[i]+'"></i>'+s.name+'</span>').join('');
+    draw('chMonthR', {chart:{type:'line', height:340}, series, colors:cols, stroke:{width:3, curve:'straight'}, markers:{size:4, strokeWidth:0},
+      xaxis:{categories:M, axisBorder:{show:false}}, yaxis:{min:-1, max:1, tickAmount:8, labels:{formatter:v=>(+v).toFixed(1)}, title:{text:'Pearson r'}},
+      annotations:{yaxis:[{y:0, borderColor:css('--faint')}]}, tooltip:{shared:true, intersect:false, y:{formatter:v=>v==null?'–':sg(v)}}});
+    drawCustom();
+  }
+  function drawCustom(){
+    const L = vis(), xk=state.cx, yk=state.cy;
+    if (!$('selX').options.length){
+      const opts = ['avl','ls','voice','data','rev','prem','sites'].map(k=>'<option value="'+k+'">'+F[k].n+'</option>').join('');
+      $('selX').innerHTML = opts; $('selY').innerHTML = opts;
+    }
+    $('selX').value = xk; $('selY').value = yk;
+    if (xk===yk) { $('customPills').innerHTML=''; $('customNote').textContent='Choose two different measures.'; return noData('chCustom'); }
+    $('customPills').innerHTML = statPills(reg(L,xk,yk));
+    $('customNote').innerHTML = pairNote(L,xk,yk);
+    scatter('chCustom', L, xk, yk);
+  }
+
+  /* --------------------------------------------------------------- breakdown */
+  function drawBreak(){
+    const rows = [CEN].concat(REG);
+    // small multiples
+    $('smRow').innerHTML = MK.map(k => '<div class="card c4"><h2>'+F[k].n+(F[k].good<0?' <em>lower is better</em>':'')+'</h2><div id="sm-'+k+'"></div></div>').join('')
+      + '<div class="card c4"><h2>Sites per sub-region</h2><div id="sm-sites"></div></div>';
+    const cols = [css('--faint')].concat(REGN.map(regCol));
+    MK.forEach(k => {
+      const vals = rows.map(r=>+r[k]);
+      const min = k==='avl' ? Math.floor((Math.min(...vals)-.3)*2)/2 : 0;
+      draw('sm-'+k, {chart:{type:'bar', height:230}, series:[{name:F[k].n, data:vals}], colors:cols,
+        plotOptions:{bar:{borderRadius:4, columnWidth:'64%', distributed:true, dataLabels:{position:'top'}}}, dataLabels:{enabled:true, formatter:v=>F[k].ax(+v), offsetY:-20, style:{fontSize:'10.5px', fontFamily:css('--mono'), colors:[css('--fg')]}},
+        xaxis:{categories:rows.map(r=>short(r.name)), axisBorder:{show:false}}, yaxis:{min, labels:{formatter:v=>F[k].ax(+v)}},
+        annotations:{yaxis:[{y:+CEN[k], borderColor:css('--faint'), strokeDashArray:4}]}, tooltip:{y:{formatter:v=>F[k].f(+v)}}});
+    });
+    draw('sm-sites', {chart:{type:'bar', height:230}, series:[{name:'Sites', data:REG.map(r=>+r.sites)}], colors:cols.slice(1),
+      plotOptions:{bar:{borderRadius:4, columnWidth:'64%', distributed:true, dataLabels:{position:'top'}}}, dataLabels:{enabled:true, formatter:v=>Math.round(v).toLocaleString('en-US'), offsetY:-20, style:{fontSize:'10.5px', fontFamily:css('--mono'), colors:[css('--fg')]}},
+      xaxis:{categories:REG.map(r=>short(r.name)), axisBorder:{show:false}}, yaxis:{labels:{formatter:v=>Math.round(v).toLocaleString('en-US')}}});
+
+    // sub-region table
+    const cnt = n => G.filter(g=>g.region===n).length;
+    $('tblReg').querySelector('thead').innerHTML = '<tr><th>Sub-region</th><th class="num">Grids</th><th class="num">Sites</th>'+MK.map(k=>'<th class="num">'+F[k].n+'</th>').join('')+'<th class="num">r (Avail,Rev)</th></tr>';
+    $('tblReg').querySelector('tbody').innerHTML = rows.map(r => {
+      const l = r.name==='Central' ? G : G.filter(g=>g.region===r.name), st = reg(l,'avl','rev');
+      return '<tr><td><b>'+esc(r.name)+'</b></td><td class="num mono">'+l.length+'</td><td class="num mono">'+Math.round(r.sites).toLocaleString('en-US')+'</td>'
+        + MK.map(k=>'<td class="num mono">'+F[k].f(+r[k])+'</td>').join('') + '<td class="num mono">'+(st?sg(st.r)+' <small style="color:var(--faint)">n='+st.n+'</small>':'–')+'</td></tr>';
+    }).join('');
+
+    // site classification: power categories
+    const cat = [{k:'avl_p',n:'Platinum',c:'--s1'},{k:'avl_g',n:'PGS',c:'--s3'},{k:'avl_s',n:'SB',c:'--s4'},{k:'avl_dg',n:'DG',c:'--s2'}];
+    const cvals = rows.flatMap(r=>cat.map(c=>+r[c.k]));
+    $('lgCat').innerHTML = cat.map(c=>'<span><i class="sw" style="background:var('+c.c+')"></i>'+c.n+'</span>').join('');
+    draw('chCat', {chart:{type:'bar', height:320}, series:cat.map(c=>({name:c.n, data:rows.map(r=>+r[c.k])})), colors:cat.map(c=>css(c.c)),
+      plotOptions:{bar:{borderRadius:3, columnWidth:'72%'}}, xaxis:{categories:rows.map(r=>short(r.name)), axisBorder:{show:false}},
+      yaxis:{min:Math.floor(Math.min(...cvals)-.5), labels:{formatter:v=>(+v).toFixed(1)+'%'}, title:{text:'Availability % (axis does not start at 0)'}}, tooltip:{shared:true, intersect:false, y:{formatter:v=>(+v).toFixed(2)+'%'}}});
+    // tier mix
+    const tierRows = REGN.map(n => { const l=G.filter(g=>g.region===n); return {n, t:TIERS.map(t=>sum(l,g=>g.mix[t]||0))}; });
+    tierRows.unshift({n:'Central', t:TIERS.map(t=>sum(G,g=>g.mix[t]||0))});
+    draw('chTier', {chart:{type:'bar', height:320, stacked:true, stackType:'100%'}, series:TIERS.map((t,i)=>({name:t, data:tierRows.map(r=>r.t[i])})), colors:TIERS.map(t=>TIERCOL[t]),
+      plotOptions:{bar:{horizontal:true, barHeight:'68%'}}, xaxis:{categories:tierRows.map(r=>short(r.n)), labels:{formatter:v=>Math.round(v)+'%'}}, stroke:{width:1, colors:[css('--surface')]},
+      legend:{show:true, position:'bottom', fontSize:'11px'}, tooltip:{y:{formatter:v=>Math.round(v).toLocaleString('en-US')+' sites'}}});
+    const L = G.filter(g=>g.prem!=null);
+    $('pillPA').innerHTML = statPills(reg(L,'prem','avl')); $('pillPR').innerHTML = statPills(reg(L,'prem','rev'));
+    scatter('chPremA', L, 'prem', 'avl', {h:320}); scatter('chPremR', L, 'prem', 'rev', {h:320});
+
+    // group wise
+    const gl = GROUPS.map(x => ({x, l:G.filter(g=>g.bin===x.k)})).filter(o=>o.l.length);
+    const range = k => { const v=G.map(g=>g[k]); return [Math.min(...v), Math.max(...v)]; };
+    const norm = (k,v) => { const [a,b]=range(k); const z=(v-a)/(b-a)*100; return F[k].good<0 ? 100-z : z; };
+    const gcol = [css('--good'), css('--accent'), css('--warn'), css('--crit')];
+    const cen = k => wavg(G,k);
+    draw('chGroupRadar', {chart:{type:'bar', height:340}, series:gl.map(o=>({name:o.x.n, data:MK.map(k=>+((wavg(o.l,k)/cen(k)-1)*100).toFixed(2))})), colors:gcol.slice(0,gl.length),
+      plotOptions:{bar:{borderRadius:3, columnWidth:'74%'}}, xaxis:{categories:MK.map(k=>F[k].sh), axisBorder:{show:false}, labels:{style:{fontSize:'11px'}}},
+      yaxis:{labels:{formatter:v=>sg(+v,1)+'%'}}, legend:{show:true, position:'top', horizontalAlign:'left'}, annotations:{yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{shared:true, intersect:false, y:{formatter:v=>sg(+v,2)+'% vs Central'}}});
+    $('tblGrp').querySelector('thead').innerHTML = '<tr><th>Group</th><th class="num">Grids</th><th class="num">Sites</th>'+MK.map(k=>'<th class="num">'+F[k].n+'</th>').join('')+'</tr>';
+    $('tblGrp').querySelector('tbody').innerHTML = gl.map(o => '<tr><td><b>'+o.x.n+'</b></td><td class="num mono">'+o.l.length+'</td><td class="num mono">'+sum(o.l,g=>g.sites).toLocaleString('en-US')+'</td>'+MK.map(k=>'<td class="num mono">'+F[k].f(wavg(o.l,k))+'</td>').join('')+'</tr>').join('');
+
+    // grid-wise leaders
+    $('gmChips').innerHTML = '<span class="glab">Measure</span>' + MK.map(k=>'<button class="chip" type="button" data-gm="'+k+'" aria-pressed="'+(state.gm===k)+'" style="--c:var('+F[k].c+')">'+F[k].n+'</button>').join('');
+    const k = state.gm, sorted = vis().filter(g=>g[k]!=null).sort((a,b)=>(b[k]-a[k])*F[k].good);
+    const bar = (id,list,col) => draw(id, {chart:{type:'bar', height:340}, series:[{name:F[k].n, data:list.map(g=>+g[k])}], colors:[col],
+      plotOptions:{bar:{horizontal:true, borderRadius:4, barHeight:'70%'}}, dataLabels:{enabled:true, formatter:v=>F[k].f(+v), style:{fontFamily:css('--mono'), fontSize:'11px'}},
+      xaxis:{categories:list.map(g=>g.name), labels:{formatter:v=>F[k].ax(+v)}, min:k==='avl'?Math.floor(Math.min(...G.map(g=>g.avl))-.5):0}, tooltip:{y:{formatter:v=>F[k].f(+v)}}});
+    if (!sorted.length) { noData('chBest'); noData('chWorst'); } else { bar('chBest', sorted.slice(0,10), css('--good')); bar('chWorst', sorted.slice(-10).reverse(), css('--serious')); }
+  }
+
+  /* ---------------------------------------------------------------------- 3D */
+  let plotlyP = null;
+  const ensurePlotly = () => plotlyP || (plotlyP = new Promise((res,rej) => {
+    if (window.Plotly) return res(window.Plotly);
+    const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js';
+    s.onload = () => res(window.Plotly); s.onerror = () => rej(new Error('Plotly failed to load')); document.head.appendChild(s);
+  }));
+  const scene = (x,y,z) => {
+    const ax = t => ({title:{text:t}, gridcolor:css('--line'), zerolinecolor:css('--line'), linecolor:css('--line'), showbackground:false, color:css('--muted')});
+    return {xaxis:ax(x), yaxis:ax(y), zaxis:ax(z), camera:{eye:{x:1.5,y:1.4,z:.8}}, aspectmode:'cube', bgcolor:'rgba(0,0,0,0)'};
+  };
+  const lay = (x,y,z,extra) => Object.assign({margin:{l:0,r:0,t:0,b:0}, height:520, paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)', font:{color:css('--muted'), family:css('--font')}, scene:scene(x,y,z)}, extra||{});
+  const PCFG = {responsive:true, displaylogo:false};
+  function drawLab(){
+    const L = vis();
+    ensurePlotly().then(P => {
+      if (!L.length) { ['p3a','p3b'].forEach(id => { $(id).innerHTML = '<div class="empty">No grids match the current filters.</div>'; }); }
+      else {
+        const smax = Math.max(...G.map(g=>g.sites));
+        P.react('p3a', [{type:'scatter3d', mode:'markers', x:L.map(g=>g.avl), y:L.map(g=>g.data), z:L.map(g=>g.voice), text:L.map(g=>g.name),
+          customdata:L.map(g=>[g.region,g.rev,g.sites,g.ls]),
+          marker:{size:L.map(g=>7+g.sites/smax*11), color:L.map(g=>g.rev), colorscale:'Viridis', opacity:.92, line:{width:.5,color:css('--bg')}, colorbar:{title:{text:'Revenue'}, thickness:12, len:.6, tickfont:{color:css('--muted')}}},
+          hovertemplate:'<b>%{text}</b> · %{customdata[0]}<br>Availability %{x:.2f}%<br>Data %{y:.0f}<br>Voice %{z:.0f}<br>Revenue %{customdata[1]:,.0f}<br>Sites %{customdata[2]}<extra></extra>'}],
+          lay('Availability %','Data','Voice'), PCFG);
+        const names = REGN.filter(n=>L.some(g=>g.region===n));
+        $('lg3b').innerHTML = names.map(n=>'<span><i class="sw" style="background:'+regCol(n)+'"></i>'+n+'</span>').join('');
+        P.react('p3b', names.map(n => { const l=L.filter(g=>g.region===n); return {type:'scatter3d', mode:'markers', name:n, x:l.map(g=>g.avl), y:l.map(g=>g.ls), z:l.map(g=>g.rev), text:l.map(g=>g.name),
+          marker:{size:8, color:regCol(n), opacity:.9, line:{width:.5,color:css('--bg')}}, hovertemplate:'<b>%{text}</b><br>Availability %{x:.2f}%<br>LS %{y:.2f}<br>Revenue %{z:,.0f}<extra>'+n+'</extra>'}; }),
+          lay('Availability %','Load shedding','Revenue',{showlegend:false}), PCFG);
+      }
+      drawSurface(P);
+    }).catch(e => { ['p3a','p3b','p3c'].forEach(id => { $(id).innerHTML = '<div class="empty">3D library could not be loaded (needs internet access to cdnjs.cloudflare.com).</div>'; }); });
+  }
+  function drawSurface(P){
+    const keys = ['t_avl','t_ls','t_voice','t_data','t_rev'], kk = {t_avl:'avl', t_ls:'ls', t_voice:'voice', t_data:'data', t_rev:'rev'};
+    $('surfChips').innerHTML = '<span class="glab">Measure</span>' + keys.map(k=>'<button class="chip" type="button" data-sm="'+k+'" aria-pressed="'+(state.sm===k)+'" style="--c:var('+F[kk[k]].c+')">'+F[kk[k]].n+'</button>').join('');
+    const rows = [CEN].concat(REG), K = F[kk[state.sm]];
+    P.react('p3c', [{type:'surface', x:M.map((_,i)=>i), y:rows.map((_,i)=>i), z:rows.map(r=>r[state.sm].map(Number)), colorscale:'Viridis', reversescale:K.good<0,
+      colorbar:{title:{text:K.n}, thickness:12, len:.6, tickfont:{color:css('--muted')}}, contours:{z:{show:true, usecolormap:true, project:{z:true}}},
+      hovertemplate:'Month %{x}<br>%{z:,.2f}<extra></extra>'}],
+      lay('Month','Sub-region',K.n,{scene:Object.assign(scene('Month','Sub-region',K.n), {xaxis:Object.assign(scene('Month','','').xaxis,{tickvals:M.map((_,i)=>i), ticktext:M}), yaxis:Object.assign(scene('','Sub-region','').yaxis,{tickvals:rows.map((_,i)=>i), ticktext:rows.map(r=>short(r.name))}), camera:{eye:{x:1.8,y:-1.7,z:1}}})}), PCFG);
+  }
+  let rotT = null;
+  function rotate(){
+    cancelAnimationFrame(rotT);
+    if (!state.rot || state.tab!=='lab' || !window.Plotly || !$('p3a').data) return;
+    let a = 0;
+    const step = () => { if (!state.rot || state.tab!=='lab') return; a += .006; window.Plotly.relayout('p3a', {'scene.camera.eye':{x:1.9*Math.cos(a), y:1.9*Math.sin(a), z:.9}}); rotT = requestAnimationFrame(step); };
+    rotT = requestAnimationFrame(step);
+  }
+
+  /* ------------------------------------------------------------ grid actions */
+  function drawAction(){
+    const L = vis();
+    const cnt = {star:0, protect:0, grow:0, fix:0}; L.forEach(g => cnt[quadOf(g)]++);
+    $('quadTiles').innerHTML = Object.keys(QUADS).map(q => '<div class="qt c3 half" style="--c:var('+QUADS[q].c+')"><div class="l">'+QUADS[q].n+'</div><div class="n">'+cnt[q]+'</div><div class="d">'+QUADS[q].d+'</div></div>').join('');
+    if (!L.length) { noData('chQuad'); noData('chGap'); $('tblGrid').querySelector('tbody').innerHTML = ''; return; }
+    const qs = Object.keys(QUADS).filter(q=>L.some(g=>quadOf(g)===q));
+    draw('chQuad', {chart:{type:'scatter', height:400}, series:qs.map(q=>({name:QUADS[q].n, data:L.filter(g=>quadOf(g)===q).map(g=>({x:g.avl, y:g.rev, g:g.name}))})), colors:qs.map(q=>css(QUADS[q].c)),
+      markers:{size:7, strokeWidth:1, strokeColors:css('--surface')}, legend:{show:true, position:'top', horizontalAlign:'left'},
+      xaxis:{type:'numeric', tickAmount:7, title:{text:'Availability %'}, labels:{formatter:v=>(+v).toFixed(1)}}, yaxis:{min:Math.floor(Math.min(...L.map(g=>g.rev))/50000)*50000-50000, title:{text:'Revenue'}, labels:{formatter:v=>F.rev.ax(+v)}},
+      annotations:{xaxis:[{x:MED.avl, borderColor:css('--faint'), strokeDashArray:4}], yaxis:[{y:MED.rev, borderColor:css('--faint'), strokeDashArray:4}]},
+      tooltip:{shared:false, intersect:true, custom:({seriesIndex,dataPointIndex,w})=>{ const p=w.config.series[seriesIndex].data[dataPointIndex]; return '<div style="padding:8px 10px;font-size:12px"><b>'+esc(p.g)+'</b><br>Availability: <b>'+F.avl.f(p.x)+'</b><br>Revenue: <b>'+F.rev.f(p.y)+'</b></div>'; }}});
+    $('gapNote').innerHTML = 'R² <b>'+(GFIT.r2*100).toFixed(1)+'%</b> · positive = earns more than availability predicts.';
+    const gs = L.slice().sort((a,b)=>b.gap-a.gap), pick = gs.length>16 ? gs.slice(0,8).concat(gs.slice(-8)) : gs;
+    draw('chGap', {chart:{type:'bar', height:400}, series:[{name:'Gap', data:pick.map(g=>+g.gap.toFixed(1))}], plotOptions:{bar:{horizontal:true, borderRadius:3, barHeight:'72%', distributed:true}},
+      colors:pick.map(g=>g.gap>=0?css('--s3'):css('--s2')), xaxis:{categories:pick.map(g=>g.name), labels:{formatter:v=>(+v).toFixed(0)+'%'}}, dataLabels:{enabled:true, formatter:v=>sg(v,1)+'%', style:{fontFamily:css('--mono'), fontSize:'10.5px'}},
+      tooltip:{y:{formatter:v=>sg(v,1)+'% vs predicted'}}, annotations:{xaxis:[{x:0, borderColor:css('--faint')}]}});
+    drawTable(L);
+  }
+  const COLS = [
+    {k:'name', n:'Grid', f:g=>'<b>'+esc(g.name)+'</b>', s:g=>g.name},
+    {k:'region', n:'Sub-region', f:g=>esc(g.region), s:g=>g.region},
+    {k:'sites', n:'Sites', num:1, f:g=>g.sites, s:g=>g.sites},
+    {k:'avl', n:'Avail %', num:1, f:g=>g.avl.toFixed(2), s:g=>g.avl},
+    {k:'ls', n:'LS', num:1, f:g=>g.ls.toFixed(2), s:g=>g.ls},
+    {k:'voice', n:'Voice', num:1, f:g=>g.voice.toFixed(0), s:g=>g.voice},
+    {k:'data', n:'Data', num:1, f:g=>g.data.toFixed(0), s:g=>g.data},
+    {k:'rev', n:'Revenue', num:1, f:g=>F.rev.f(g.rev), s:g=>g.rev},
+    {k:'prem', n:'Premium %', num:1, f:g=>g.prem==null?'–':g.prem.toFixed(0)+'%', s:g=>g.prem==null?-1:g.prem},
+    {k:'gap', n:'Rev vs predicted', num:1, f:g=>'<span class="'+(g.gap>=0?'up':'dn')+'">'+sg(g.gap,1)+'%</span>', s:g=>g.gap},
+    {k:'quad', n:'Action', f:g=>qpill(quadOf(g)), s:g=>quadOf(g)}
+  ];
+  function drawTable(L){
+    L = L || vis();
+    const q = state.q.trim().toLowerCase(), col = COLS.filter(c=>c.k===state.sort.k)[0] || COLS[7];
+    const rows = L.filter(g=>!q || g.name.toLowerCase().indexOf(q)>=0).sort((a,b)=>{ const x=col.s(a), y=col.s(b); return (x<y?-1:x>y?1:0)*state.sort.d; });
+    $('tblGrid').querySelector('thead').innerHTML = '<tr>'+COLS.map(c=>'<th class="'+(c.num?'num':'')+'" data-sort="'+c.k+'">'+c.n+(state.sort.k===c.k?(state.sort.d>0?' ▲':' ▼'):'')+'</th>').join('')+'</tr>';
+    $('tblGrid').querySelector('tbody').innerHTML = rows.map(g=>'<tr>'+COLS.map(c=>'<td class="'+(c.num?'num mono':'')+'">'+c.f(g)+'</td>').join('')+'</tr>').join('') || '<tr><td colspan="'+COLS.length+'"><div class="empty">No grid matches.</div></td></tr>';
+  }
+
+  /* ================================================================ IMPACT: cause -> effect */
+  const IM = {c:'avl', e:'rev', basis:'within', d:null};
+  const crit = df => 1.96 + 2.5/df + 3/(df*df);
+  function ols(x,y,df){
+    const n=x.length; if(n<5) return null;
+    const mx=mean(x), my=mean(y); let sxx=0,sxy=0,syy=0;
+    for(let i=0;i<n;i++){ const a=x[i]-mx, b=y[i]-my; sxx+=a*a; sxy+=a*b; syy+=b*b; }
+    if(!sxx || !syy) return null;
+    const m=sxy/sxx, r=sxy/Math.sqrt(sxx*syy); df = df>0 ? df : n-2;
+    const s=Math.sqrt(Math.max(0,syy-m*sxy)/df), se=s/Math.sqrt(sxx), cr=crit(df);
+    return {n, m, b:my-m*mx, r, r2:r*r, se, s, sxx, mx, my, ci:[m-cr*se, m+cr*se], cr, sig:Math.abs(m/se)>cr};
+  }
+  function pairAvg(g,xk,yk){
+    const a=g[F[xk].t], b=g[F[yk].t]; if(!a||!b) return null; const X=[],Y=[];
+    for(let i=0;i<Math.min(a.length,b.length);i++) if(a[i]!=null && b[i]!=null){ X.push(+a[i]); Y.push(+b[i]); }
+    return X.length>=3 ? {x:mean(X), y:mean(Y)} : null;
+  }
+  function cross(list,xk,yk){
+    const pts=[]; list.forEach(g => { const p=pairAvg(g,xk,yk); if(p) pts.push({x:p.x, y:p.y, g:g.name, s:g.sites, region:g.region}); });
+    const st = ols(pts.map(p=>p.x), pts.map(p=>p.y)); return st ? Object.assign(st,{pts}) : null;
+  }
+  /* within-grid: every grid is compared with its own average, so size / tier / location differences drop out */
+  function panel(list,xk,yk,lag){
+    const X=[],Y=[]; let grp=0; const A=F[xk].t, B=F[yk].t, ox=Math.max(0,-lag), oy=Math.max(0,lag);
+    list.forEach(g => {
+      const a=g[A], b=g[B]; if(!a||!b) return; const px=[], py=[];
+      for(let i=0; i+ox<a.length && i+oy<b.length; i++){ const u=a[i+ox], v=b[i+oy]; if(u!=null && v!=null){ px.push(+u); py.push(+v); } }
+      if(px.length>=4){ const mx=mean(px), my=mean(py); px.forEach((u,i)=>{ X.push(u-mx); Y.push(py[i]-my); }); grp++; }
+    });
+    const st = ols(X,Y,X.length-grp-1); return st ? Object.assign(st,{grids:grp}) : null;
+  }
+  function trendOf(arr,last){
+    const pts=[]; for(let i=Math.max(0,arr.length-last); i<arr.length; i++) if(arr[i]!=null) pts.push([i,+arr[i]]);
+    if(pts.length<4) return null; const st=ols(pts.map(p=>p[0]), pts.map(p=>p[1])); return st ? {m:st.m, mean:mean(pts.map(p=>p[1]))} : null;
+  }
+  const quant = (a,p) => { const s=[...a].sort((x,y)=>x-y), i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); };
+  const fBig = v => { const a=Math.abs(v); return (v<0?'−':'') + (a>=1e6 ? (a/1e6).toFixed(2)+'M' : a>=1e3 ? (a/1e3).toFixed(1)+'K' : a.toFixed(a<10?2:0)); };
+  const sgn2 = (k,v) => (v>0?'+':v<0?'−':'') + fD(k,Math.abs(v));
+  const LAGS = [-2,-1,0,1,2];
+  const strengthWord = r => { const a=Math.abs(r); return a>=.7?'strong':a>=.4?'moderate':a>=.2?'weak':'very weak'; };
+
+  function impNoData(msg){
+    $('impHero').innerHTML = '<div class="empty">'+msg+'</div>'; $('impInsights').innerHTML = '';
+    ['chImpScatter','chImpResp','chImpLag','chImpIdx','chImpDrv','chImpMom','chImpQuad','chImpTree'].forEach(noData);
+  }
+
+  function drawImpact(){
+    const L = vis(), c = IM.c, e = IM.e, C = F[c], E = F[e], col1 = css(C.c), col2 = css(E.c);
+    $('selC').value = c; $('selE').value = e;
+    document.querySelectorAll('[data-ib]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ib===IM.basis));
+    if (c===e) return impNoData('Pick two different measures: one as the cause, one as the effect.');
+    if (L.length < 6) return impNoData('Select at least 6 grids (current filters leave '+L.length+') for a meaningful analysis.');
+    const X = cross(L,c,e), W = panel(L,c,e,0);
+    if (!X && !W) return impNoData('Not enough data for this pair.');
+    const lagR = LAGS.map(k => panel(L,c,e,k));
+    let bestI = -1; lagR.forEach((s,i) => { if (s && (bestI<0 || Math.abs(s.r) > Math.abs(lagR[bestI].r))) bestI = i; });
+    const best = bestI>=0 ? lagR[bestI] : null, bestLag = bestI>=0 ? LAGS[bestI] : 0;
+    const S = IM.basis==='within' ? (W||X) : (X||W), Sname = S===W ? 'within-grid' : 'cross-grid';
+    const step = C.step, perStep = S.m*step, ciStep = [S.ci[0]*step, S.ci[1]*step];
+    const lead = Math.max(...[-2,-1].map(k => { const s=lagR[LAGS.indexOf(k)]; return s ? Math.abs(s.r) : 0; }));
+    const lag0 = Math.abs((lagR[2]||{r:0}).r), follow = Math.max(...[1,2].map(k => { const s=lagR[LAGS.indexOf(k)]; return s ? Math.abs(s.r) : 0; }));
+
+    /* network series (site-weighted) */
+    const net = k => M.map((_,i) => wm(L,F[k].t,i));
+    const sC = net(c), sE = net(e);
+    const mom = s => s.map((v,i) => (i && v!=null && s[i-1]!=null && s[i-1]!==0) ? (v/s[i-1]-1)*100 : null);
+    const mC = mom(sC), mE = mom(sE); let same=0, both=0;
+    mC.forEach((v,i) => { if (v!=null && mE[i]!=null && v!==0 && mE[i]!==0){ both++; if ((v>0)===(mE[i]>0)) same++; } });
+    const expectSame = S.m>0;
+    const agree = expectSame ? same : both-same;
+
+    /* ---------- hero verdict ---------- */
+    const rW = W ? W.r : null, rX = X ? X.r : null;
+    const sigW = W && W.sig, sigX = X && X.sig, signSame = W && X && (W.m>0)===(X.m>0);
+    let vTitle, vCls, vTxt;
+    if (sigW && sigX && signSame && Math.max(Math.abs(rW),Math.abs(rX))>=.3){ vTitle='Consistent link'; vCls='--good'; }
+    else if (sigW || sigX){ vTitle='Partial evidence'; vCls='--warn'; }
+    else { vTitle='No reliable link'; vCls='--faint'; }
+    const dirTxt = S.m>0 ? 'move in the same direction' : 'move in opposite directions';
+    vTxt = vTitle==='No reliable link' ? '' : 'When '+C.n.toLowerCase()+' rises, '+E.n.toLowerCase()+' tends to '+(S.m>0?'rise':'fall')+'.';
+    const tile = (l,v,s,c2) => '<div class="imp-stat" style="--c:var('+(c2||'--accent')+')"><span class="l">'+l+'</span><span class="v">'+v+'</span><span class="s">'+s+'</span></div>';
+    $('impHero').style.setProperty('--c1', col1); $('impHero').style.setProperty('--c2', col2);
+    $('impHero').innerHTML =
+      '<div class="imp-left"><div class="imp-flow"><span class="imp-node" style="--c:'+col1+'">'+esc(C.n)+'</span><svg width="34" height="18" viewBox="0 0 34 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9h28M23 3l7 6-7 6"/></svg><span class="imp-node" style="--c:'+col2+'">'+esc(E.n)+'</span></div>'
+      + '<div class="imp-verdict" style="--v:var('+vCls+')"><i></i>'+vTitle+'</div>'+(vTxt?'<p>'+vTxt+'</p>':'')+''
+      + '<div class="imp-meta">'+L.length+' grids · '+sum(L,g=>g.sites).toLocaleString('en-US')+' sites · '+M[0]+'–'+M[M.length-1]+'</div></div>'
+      + '<div class="imp-stats">'
+      + tile('Between grids', X ? sg(X.r,2) : '–', X ? 'r · R² '+(X.r2*100).toFixed(0)+'% · '+strengthWord(X.r)+(X.sig?'':' · not significant') : 'n/a', '--s1')
+      + tile('Inside each grid', W ? sg(W.r,2) : '–', W ? 'r · '+W.grids+' grids × months · '+strengthWord(W.r)+(W.sig?'':' · not significant') : 'n/a', '--s3')
+      + tile('Per '+C.stepL+' of '+C.sh, sgn2(e,perStep), Sname+' · 95% range '+sgn2(e,Math.min(...ciStep))+' to '+sgn2(e,Math.max(...ciStep)), '--s5')
+      + tile('Direction match', both ? agree+' / '+both : '–', both ? 'months moving '+(expectSame?'together':'oppositely') : 'n/a', '--s4')
+      + '</div>';
+
+    /* ---------- driver ranking ---------- */
+    const drivers = MK.filter(k => k!==e).map(k => ({k, w:panel(L,k,e,0), x:cross(L,k,e)})).filter(d => d.w || d.x)
+      .sort((a,b) => Math.abs(b.w?b.w.r:0) - Math.abs(a.w?a.w.r:0));
+    const top = drivers[0];
+
+    /* ---------- insight cards ---------- */
+    const cards = [];
+    cards.push({c:col1, t:'Size of the effect', h:sgn2(e,perStep)+' '+E.sh+' per site', p:'for every <b>+'+C.stepL+'</b> of '+C.n.toLowerCase()+' ('+Sname+' estimate). 95% range <b>'+sgn2(e,Math.min(...ciStep))+'</b> to <b>'+sgn2(e,Math.max(...ciStep))+'</b>.'+(S.sig?'':' The range crosses zero, so treat as unproven.')});
+    if (top) cards.push({c:css(F[top.k].c), t:'Biggest lever on '+E.n.toLowerCase(), h:F[top.k].n, p:'Inside-grid r = <b>'+(top.w?sg(top.w.r,2):'–')+'</b>, between-grid r = <b>'+(top.x?sg(top.x.r,2):'–')+'</b>. '+(top.k===c?'This is the cause you are testing.':'Compare with '+C.n.toLowerCase()+' (r = '+(W?sg(W.r,2):'–')+').')});
+    if (best){
+      const txt = bestLag===0 ? 'Same month' : bestLag>0 ? C.n+' leads by '+bestLag+' month'+(bestLag>1?'s':'') : E.n+' leads by '+(-bestLag)+' month'+(bestLag<-1?'s':'');
+      cards.push({c:'#7C6CFF', t:'Timing', h:txt, p:'Strongest inside-grid link is at this offset (r = <b>'+sg(best.r,2)+'</b>). '+(lead>Math.max(lag0,follow)+.05 ? '<b>Caution:</b> '+E.n.toLowerCase()+' moves first, so the arrow may run the other way.' : follow>lag0+.05 ? 'The effect shows up with a delay, which supports '+C.n.toLowerCase()+' as a driver.' : 'The effect is felt within the same month.')});
+    }
+    const trC = L.map(g => trendOf(g[C.t],6)), trE = L.map(g => trendOf(g[E.t],6));
+    let up=0, dn=0, tot=0; L.forEach((g,i) => { if (trC[i] && trE[i]){ tot++; const gc=trC[i].m*C.good, ge=trE[i].m*E.good; if (gc>0 && ge>0) up++; else if (gc<0 && ge<0) dn++; } });
+    cards.push({c:css('--serious'), t:'Momentum (last 6 months)', h:up+' improving · '+dn+' slipping', p:'Grids where <b>both</b> '+C.n.toLowerCase()+' and '+E.n.toLowerCase()+' are getting better / worse, out of '+tot+' with enough data.'});
+    $('impInsights').innerHTML = cards.map(x => '<div class="ins c3 half" style="--c:'+x.c+'"><div class="t">'+x.t+'</div><div class="h">'+x.h+'</div>'+(x.keep?'<p>'+x.p+'</p>':'')+'</div>').join('');
+
+    /* ---------- 1. scatter with confidence band ---------- */
+    if (X){
+      const names = REGN.filter(n => X.pts.some(p=>p.region===n));
+      const xs = X.pts.map(p=>p.x), x0=Math.min(...xs), x1=Math.max(...xs), pad=(x1-x0)*.06||1;
+      const grid = Array.from({length:24},(_,i) => x0-pad + (x1-x0+2*pad)*i/23);
+      const fit = v => X.m*v+X.b, band = v => X.cr*X.s*Math.sqrt(1/X.n + (v-X.mx)*(v-X.mx)/X.sxx);
+      const series = names.map(n => ({name:n, type:'scatter', data:X.pts.filter(p=>p.region===n).map(p=>({x:p.x,y:p.y,g:p.g,s:p.s}))}))
+        .concat([{name:'Fit', type:'line', data:grid.map(v=>({x:v,y:fit(v)}))},{name:'95% upper', type:'line', data:grid.map(v=>({x:v,y:fit(v)+band(v)}))},{name:'95% lower', type:'line', data:grid.map(v=>({x:v,y:fit(v)-band(v)}))}]);
+      const k = names.length;
+      draw('chImpScatter', {
+        chart:{type:'line', height:380}, series,
+        colors:names.map(regCol).concat([css('--fg'), css('--faint'), css('--faint')]),
+        stroke:{width:names.map(()=>0).concat([2.5,1,1]), dashArray:names.map(()=>0).concat([0,5,5]), curve:'smooth'},
+        markers:{size:names.map(()=>7).concat([0,0,0]), strokeWidth:2, strokeColors:css('--surface'), hover:{sizeOffset:3}},
+        xaxis:{type:'numeric', min:x0-pad, max:x1+pad, tickAmount:7, title:{text:C.n+' (avg over months)'}, labels:{formatter:v=>C.ax(+v)}, axisBorder:{show:false}},
+        yaxis:{title:{text:E.n}, labels:{formatter:v=>E.ax(+v)}},
+        legend:{show:true, position:'top', horizontalAlign:'left', customLegendItems:names, markers:{size:6}},
+        tooltip:{shared:false, intersect:true, custom:({seriesIndex,dataPointIndex,w}) => { const d=w.config.series[seriesIndex].data[dataPointIndex]; if(!d || !d.g) return '';
+          return '<div class="tt"><b>'+esc(d.g)+'</b><br>'+C.sh+': '+C.f(d.x)+'<br>'+E.sh+': '+E.f(d.y)+'<br><span>'+d.s+' sites</span></div>'; }}
+      });
+    } else noData('chImpScatter');
+
+    /* ---------- 2. what-if simulator ---------- */
+    const range = step, sl = $('whatSlider');
+    sl.min = -range; sl.max = range; sl.step = range/40;
+    if (IM.d==null || Math.abs(IM.d)>range) IM.d = range/2;
+    sl.value = IM.d;
+    IM.ctx = {L, S, Sname};
+    drawWhat(L, S, Sname);
+
+    /* ---------- 3. lag chart ---------- */
+    const lagVals = lagR.map(s => s ? +s.r.toFixed(3) : null);
+    draw('chImpLag', {
+      chart:{type:'bar', height:290}, series:[{name:'Inside-grid r', data:lagVals}],
+      colors:[o => { const v=o.value, i=o.dataPointIndex, a = i===bestI ? '' : '88'; return (v>=0 ? css('--s3') : css('--s2')) + a; }],
+      plotOptions:{bar:{borderRadius:8, columnWidth:'52%', borderRadiusApplication:'end'}},
+      dataLabels:{enabled:true, formatter:v=>v==null?'':sg(v,2), style:{fontSize:'11px', fontFamily:css('--mono'), colors:[css('--fg')]}, background:{enabled:false}, dropShadow:{enabled:false}, offsetY:-20},
+      xaxis:{categories:['−2 mo','−1 mo','Same month','+1 mo','+2 mo'], title:{text:'Offset: + means '+C.sh+' moves first, − means '+E.sh+' moves first'}, axisBorder:{show:false}},
+      yaxis:{min:-1, max:1, tickAmount:4, labels:{formatter:v=>(+v).toFixed(1)}},
+      annotations:{yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{y:{formatter:(v,o) => { const s=lagR[o.dataPointIndex]; return sg(v,3)+(s?' · n='+s.n:''); }}}
+    });
+
+    /* ---------- 4. indexed trend of everything ---------- */
+    const idx = k => { const s=net(k), b=s.find(v=>v!=null); return s.map(v => v==null||!b ? null : +(v/b*100).toFixed(2)); };
+    draw('chImpIdx', {
+      chart:{type:'line', height:290}, series:MK.map(k => ({name:F[k].n, data:idx(k)})),
+      colors:MK.map(k => css(F[k].c)), stroke:{width:MK.map(k => k===c||k===e ? 4 : 1.6), curve:'smooth', dashArray:MK.map(k => k===c||k===e ? 0 : 4)},
+      markers:{size:MK.map(k => k===c||k===e ? 4 : 0), strokeWidth:0},
+      xaxis:{categories:M, axisBorder:{show:false}}, yaxis:{labels:{formatter:v=>(+v).toFixed(1)}, title:{text:M[0]+' = 100'}},
+      legend:{show:true, position:'top', horizontalAlign:'left'}, tooltip:{shared:true, intersect:false, y:{formatter:v=>v==null?'–':v.toFixed(1)}}
+    });
+
+    /* ---------- 5. driver ranking ---------- */
+    draw('chImpDrv', {
+      chart:{type:'bar', height:290}, series:[{name:'Inside each grid (monthly)', data:drivers.map(d=>d.w?+d.w.r.toFixed(2):0)},{name:'Between grids (YTD avg)', data:drivers.map(d=>d.x?+d.x.r.toFixed(2):0)}],
+      colors:[css('--s3'), css('--s1')], plotOptions:{bar:{horizontal:true, borderRadius:6, barHeight:'62%', dataLabels:{position:'top'}}},
+      dataLabels:{enabled:true, formatter:v=>sg(v,2), style:{fontSize:'10.5px', fontFamily:css('--mono'), colors:[css('--fg')]}, background:{enabled:false}, dropShadow:{enabled:false}, offsetX:26},
+      xaxis:{categories:drivers.map(d=>F[d.k].n), min:-1, max:1, tickAmount:4, labels:{formatter:v=>(+v).toFixed(1)}},
+      legend:{show:true, position:'top', horizontalAlign:'left'}, tooltip:{y:{formatter:v=>'r = '+sg(v,2)}}
+    });
+
+    /* ---------- 6. month-over-month moves ---------- */
+    draw('chImpMom', {
+      chart:{type:'line', height:290}, series:[{name:C.n+' Δ%', type:'column', data:mC.map(v=>v==null?null:+v.toFixed(2))},{name:E.n+' Δ%', type:'line', data:mE.map(v=>v==null?null:+v.toFixed(2))}],
+      colors:[col1+'cc', col2], stroke:{width:[0,3.5], curve:'smooth'}, markers:{size:[0,5], strokeWidth:2, strokeColors:css('--surface')},
+      plotOptions:{bar:{borderRadius:6, columnWidth:'46%'}},
+      xaxis:{categories:M, axisBorder:{show:false}},
+      yaxis:[{title:{text:C.sh+' Δ% vs previous month', style:{color:col1}}, labels:{formatter:v=>(+v).toFixed(2)+'%'}},{opposite:true, title:{text:E.sh+' Δ%', style:{color:col2}}, labels:{formatter:v=>(+v).toFixed(1)+'%'}}],
+      legend:{show:true, position:'top', horizontalAlign:'left'}, annotations:{yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{shared:true, intersect:false, y:{formatter:v=>v==null?'–':sg(v,2)+'%'}}
+    });
+
+    /* ---------- 7. momentum quadrant ---------- */
+    const cls = [{n:'Both rising',c:css('--s1')},{n:'Both falling',c:css('--crit')},{n:C.sh+' ↑  '+E.sh+' ↓',c:css('--warn')},{n:C.sh+' ↓  '+E.sh+' ↑',c:'#7C6CFF'}];
+    const mser = cls.map(() => []);
+    L.forEach((g,i) => { const a=trC[i], b=trE[i]; if(!a||!b) return; const ex=b.m/b.mean*100, ix = a.m>=0 ? (ex>=0?0:2) : (ex>=0?3:1); mser[ix].push({x:+a.m.toFixed(4), y:+ex.toFixed(3), g:g.name, s:g.sites}); });
+    if (mser.some(a=>a.length)) draw('chImpQuad', {
+      chart:{type:'scatter', height:340}, series:cls.map((q,i)=>({name:q.n, data:mser[i]})), colors:cls.map(q=>q.c),
+      markers:{size:8, strokeWidth:2, strokeColors:css('--surface'), hover:{sizeOffset:3}},
+      xaxis:{type:'numeric', tickAmount:7, title:{text:C.n+' trend per month'}, labels:{formatter:v=>(+v).toFixed(C.step>=100?0:2)}, axisBorder:{show:false}},
+      yaxis:{title:{text:E.n+' trend, % per month'}, labels:{formatter:v=>(+v).toFixed(1)+'%'}},
+      annotations:{xaxis:[{x:0, borderColor:css('--faint'), strokeDashArray:4}], yaxis:[{y:0, borderColor:css('--faint'), strokeDashArray:4}]},
+      legend:{show:true, position:'top', horizontalAlign:'left'},
+      tooltip:{custom:({seriesIndex,dataPointIndex,w}) => { const d=w.config.series[seriesIndex].data[dataPointIndex]; return '<div class="tt"><b>'+esc(d.g)+'</b><br>'+C.sh+': '+sg(d.x,C.step>=100?0:3)+' / month<br>'+E.sh+': '+sg(d.y,2)+'% / month</div>'; }}
+    }); else noData('chImpQuad');
+
+    /* ---------- 8. uplift potential treemap ---------- */
+    const vals = L.map(g => pairAvg(g,c,c)).filter(Boolean).map(p=>p.x);
+    const goalV = quant(vals, C.good>0 ? .75 : .25);
+    const upl = L.map(g => { const p=pairAvg(g,c,c); if(!p) return null; const dl = goalV - p.x; if (dl*C.good<=0) return null; const per = S.m*dl; return {g, dl, per, tot:per*g.sites}; })
+      .filter(o => o && o.tot>0).sort((a,b)=>b.tot-a.tot).slice(0,16);
+    $('treeNote').innerHTML = 'If grids below top-quartile <b>'+C.n.toLowerCase()+'</b> ('+C.f(goalV)+') reached it → est. change in '+E.n.toLowerCase()+'.';
+    if (upl.length) draw('chImpTree', {
+      chart:{type:'treemap', height:340}, series:[{data:upl.map(o => ({x:o.g.name, y:+o.tot.toFixed(2), per:o.per, dl:o.dl, reg:o.g.region}))}],
+      colors:upl.map(o => regCol(o.g.region)), plotOptions:{treemap:{distributed:true, enableShades:false, borderRadius:6}},
+      dataLabels:{enabled:true, style:{fontSize:'12px', fontWeight:600}, formatter:(t,o) => t+'  '+sgn2(e,upl[o.dataPointIndex].per)},
+      stroke:{width:2, colors:[css('--surface')]},
+      tooltip:{y:{formatter:(v,o) => { const u=upl[o.dataPointIndex]; return 'Close '+sgn2(c,u.dl)+' '+C.sh+' → '+sgn2(e,u.per)+' per site'; }}}
+    }); else { noData('chImpTree'); }
+  }
+
+  function drawWhat(L, S, Sname){
+    const c=IM.c, e=IM.e, C=F[c], E=F[e], d=+IM.d, per=S.m*d, lo=Math.min(S.ci[0]*d,S.ci[1]*d), hi=Math.max(S.ci[0]*d,S.ci[1]*d);
+    const sites = sum(L,g=>g.sites), perSiteMeasure = (e==='rev'||e==='voice'||e==='data');
+    $('whatVal').textContent = sgn2(c,d)+' '+C.sh;
+    $('whatOut').innerHTML =
+      '<div class="imp-stat" style="--c:var('+E.c+')"><span class="l">Per site</span><span class="v">'+sgn2(e,per)+'</span><span class="s">95% range '+sgn2(e,lo)+' to '+sgn2(e,hi)+'</span></div>'
+      + '<div class="imp-stat" style="--c:var('+E.c+')"><span class="l">'+(perSiteMeasure ? 'Network total' : 'Network average')+'</span><span class="v">'+(perSiteMeasure ? (per>=0?'+':'−')+fBig(Math.abs(per*sites)) : sgn2(e,per))+'</span><span class="s">'+(perSiteMeasure ? 'all '+sites.toLocaleString('en-US')+' sites · per month' : 'site-weighted')+'</span></div>';
+    const R0 = +$('whatSlider').max, pts = Array.from({length:41},(_,i) => -R0 + 2*R0*i/40);
+    draw('chImpResp', {
+      chart:{type:'area', height:210}, series:[{name:'Estimate', data:pts.map(v=>({x:v,y:S.m*v}))},{name:'95% upper', data:pts.map(v=>({x:v,y:Math.max(S.ci[0]*v,S.ci[1]*v)}))},{name:'95% lower', data:pts.map(v=>({x:v,y:Math.min(S.ci[0]*v,S.ci[1]*v)}))}],
+      colors:[css(E.c), css('--faint'), css('--faint')], stroke:{width:[3,1,1], dashArray:[0,5,5], curve:'straight'},
+      fill:{type:['gradient','solid','solid'], opacity:[1,0,0], gradient:{shadeIntensity:1, opacityFrom:.35, opacityTo:.02, stops:[0,100]}},
+      xaxis:{type:'numeric', tickAmount:4, labels:{formatter:v=>(+v>0?'+':'')+C.ax(+v).replace('%','')}, title:{text:'Change in '+C.sh}, axisBorder:{show:false}},
+      yaxis:{labels:{formatter:v=>E.ax(+v)}, title:{text:'Change in '+E.sh+' / site'}},
+      annotations:{xaxis:[{x:d, borderColor:css(C.c), strokeDashArray:0, label:{text:sgn2(c,d), orientation:'horizontal', borderWidth:0, style:{color:'#fff', background:css(C.c), fontSize:'11px'}}}], yaxis:[{y:0, borderColor:css('--faint')}]},
+      tooltip:{shared:true, intersect:false, x:{formatter:v=>sgn2(c,v)}, y:{formatter:v=>sgn2(e,v)}}
+    });
+  }
+
+  /* impact controls */
+  MK.forEach(k => { ['selC','selE'].forEach(id => { const o=document.createElement('option'); o.value=k; o.textContent=F[k].n; $(id).appendChild(o); }); });
+  $('selC').addEventListener('change', e => { IM.c = e.target.value; IM.d = null; drawImpact(); });
+  $('selE').addEventListener('change', e => { IM.e = e.target.value; IM.d = null; drawImpact(); });
+  $('swapCE').addEventListener('click', () => { const t=IM.c; IM.c=IM.e; IM.e=t; IM.d=null; drawImpact(); });
+  document.querySelectorAll('[data-ib]').forEach(b => b.addEventListener('click', () => { IM.basis=b.dataset.ib; IM.d=null; drawImpact(); }));
+  let whatRaf = 0;
+  $('whatSlider').addEventListener('input', e => { IM.d = +e.target.value; if (!IM.ctx) return; cancelAnimationFrame(whatRaf); whatRaf = requestAnimationFrame(() => drawWhat(IM.ctx.L, IM.ctx.S, IM.ctx.Sname)); });
+
+  /* --------------------------------------------------------------- navigation */
+  const TABS = ['overview','impact','pairs','break','lab','action'];
+  function setTab(t){ state.tab = t; drawTab(); }
+  function drawTab(){
+    drawOverview(); drawImpact(); drawPairs(); drawBreak(); drawAction();
+    drawLab(); setTimeout(rotate, 600);
+  }
+  function renderAll(){ drawFilters(); drawKpis(); drawTab(); }
+
+    document.addEventListener('click', e => {
+    const c = e.target.closest('[data-region],[data-group],[data-gm],[data-sm],[data-sort]'); if (!c || !c.closest('#aRoot')) return;
+    if (c.dataset.region) { state.region = c.dataset.region; renderAll(); }
+    else if (c.dataset.group) { state.group = c.dataset.group; renderAll(); }
+    else if (c.dataset.gm) { state.gm = c.dataset.gm; drawBreak(); }
+    else if (c.dataset.sm) { state.sm = c.dataset.sm; ensurePlotly().then(drawSurface); }
+    else if (c.dataset.sort) { const k=c.dataset.sort; state.sort = {k, d: state.sort.k===k ? -state.sort.d : (k==='name'||k==='region'||k==='quad' ? 1 : -1)}; drawTable(); }
+  });
+  $('selX').addEventListener('change', e => { state.cx = e.target.value; drawCustom(); });
+  $('selY').addEventListener('change', e => { state.cy = e.target.value; drawCustom(); });
+  $('q').addEventListener('input', e => { state.q = e.target.value; drawTable(); });
+  $('rotA').addEventListener('click', e => { state.rot = !state.rot; e.currentTarget.setAttribute('aria-pressed', state.rot); rotate(); });
+  new MutationObserver(()=>{ renderAll(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+  $('a_foot').innerHTML = 'Per-site averages · site-weighted roll-ups · correlation is not causation · medians: Availability '+MED.avl.toFixed(2)+'%, Revenue '+(MED.rev/1000).toFixed(0)+'K.';
+  renderAll();
+})();
+</script>
+<script>
+
+(function(){
+  const links = [].slice.call(document.querySelectorAll('#jump .tab'));
+  const map = {}; links.forEach(a => { map[a.dataset.s] = a; });
+  const set = id => links.forEach(a => a.classList.toggle('on', a === map[id]));
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(es => { es.forEach(e => { if (e.isIntersecting) set(e.target.id); }); }, {rootMargin:'-150px 0px -70% 0px'});
+  links.forEach(a => { const el = document.getElementById(a.dataset.s); if (el) io.observe(el); });
+  set('s-overview');
+})();
+
+</script>
+</body>
+</html>

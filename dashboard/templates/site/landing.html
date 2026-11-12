@@ -1,0 +1,221 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zong · RCTO Central Performance Hub</title>
+<meta name="description" content="One view of customer complaints, fiber cuts, cell availability and load shedding for RCTO Central, FOPs C1–C6.">
+<meta name="theme-color" content="#040C07">
+<link rel="icon" href="{% static 'site/img/favicon.svg' %}" type="image/svg+xml">
+{% include "site/_art.html" %}
+<script src="{% static 'site/js/theme.js' %}"></script>
+<link rel="stylesheet" href="{% static 'site/css/site.css' %}">
+</head>
+<body>
+<a class="sr-only" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    {% include "site/_brand.html" %}
+    <nav aria-label="Primary"><ul>
+      <li><a href="#modules">Modules</a></li>
+      <li><a href="#dashboards">Dashboards</a></li>
+      <li><a href="#insights">Insights</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#data">Data</a></li>
+      <li><a href="#faq">Definitions</a></li>
+    </ul></nav>
+    <div class="end">
+      {% include "site/_theme_toggle.html" %}
+      <a class="btn btn-primary cta" href="{% url 'dashboards' %}">Open dashboards <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg></a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero">
+  {% if hero_photo %}<div class="hero-photo" style="background-image:url('{% static hero_photo %}')"></div>{% endif %}
+  <div class="wrap">
+    <div>
+      <span class="eyebrow"><i></i>RCTO Central · {{ period }}</span>
+      <h1>What drives complaints across <em>Central.</em></h1>
+      <p class="lede">One view of customer complaints, fiber cuts, cell availability and load shedding for FOPs C1–C6, so teams can see what moves complaints and where to act first.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{% url 'dashboards' %}">Open dashboards <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg></a>
+        <a class="btn btn-ghost" href="#insights">See key insights</a>
+      </div>
+      <ul class="proof">
+        <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10.5 4 4 8-9"/></svg>{{ sources|length }} source files, one snapshot</li>
+        <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10.5 4 4 8-9"/></svg>Updated {{ refreshed|date:"j M Y" }}</li>
+      </ul>
+    </div>
+
+    <div class="console" aria-label="Latest month">
+      <div class="panel">
+        <div class="top"><span>Central · {{ last }} 2026</span><span class="delta {% if hero.mom_good %}good{% else %}bad{% endif %}">{{ hero.mom }}% vs {{ prev }}</span></div>
+        <div class="row1"><div class="big" data-count>{{ hero.complaints }}<small>Complaints</small></div></div>
+        <svg class="spark" viewBox="0 0 {{ spark.w }} {{ spark.h }}" role="img" aria-label="Complaints and OFC cuts by month" preserveAspectRatio="none">
+          <defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF3DA0"/><stop offset="1" stop-color="#F0147F"/></linearGradient></defs>
+          {% for b in spark.bars %}<rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="5" fill="url(#bg1)" opacity="{% if b.last %}1{% else %}.55{% endif %}"/>{% endfor %}
+          <polyline points="{{ spark.line }}" fill="none" stroke="#FF9A1F" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+          {% for d in spark.dots %}<circle class="dot" cx="{{ d.x }}" cy="{{ d.y }}" r="3.6" stroke="#FF9A1F" stroke-width="2" vector-effect="non-scaling-stroke"/>{% endfor %}
+        </svg>
+        <div class="legend"><span><i style="background:#F0147F"></i>Complaints</span><span><i style="background:#FF9A1F"></i>OFC cuts</span><span style="margin-left:auto">{{ spark_labels.0 }} – {{ spark_labels|last }}</span></div>
+        <div class="mini3">
+          <div><b>{{ hero.cuts }}</b><span>OFC cuts</span>{% if hero.cuts_y %}<em class="yoy {{ hero.cuts_yc }}">{{ hero.cuts_y }} vs {{ last }} 2025</em>{% endif %}</div>
+          <div><b>{{ hero.avail }}%</b><span>Availability</span>{% if hero.avail_y %}<em class="yoy {{ hero.avail_yc }}">{{ hero.avail_y }} vs {{ last }} 2025</em>{% endif %}</div>
+          <div><b>{{ hero.ls }} h</b><span>Load shedding</span>{% if hero.ls_y %}<em class="yoy {{ hero.ls_yc }}">{{ hero.ls_y }} vs {{ last }} 2025</em>{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats" aria-label="Headline numbers">
+  <div class="wrap">
+    {% for s in stats %}<div class="stat rv" style="--c:{{ s.c }};--d:{{ forloop.counter0 }}00ms"><b data-count>{{ s.v }}{% if s.u %}<small>{{ s.u }}</small>{% endif %}</b><span>{{ s.l }}</span>{% if s.d %}<em class="yoy {{ s.dc }}">{{ s.d }}</em>{% endif %}</div>{% endfor %}
+  </div>
+</section>
+
+<section class="block" id="modules">
+  <div class="wrap">
+    <div class="sechead rv"><div class="kicker">Modules</div><h2 class="title">Pick a module.</h2><p class="sub">Each module is a full set of dashboards with its own data, in the same look.</p></div>
+    <div class="dcards two">
+      {% for m in modules %}
+      <a class="dcard rv" style="--c:{{ m.c }};--d:{{ forloop.counter0 }}00ms" href="{% url m.url %}">
+        <div class="pic">
+          <img src="{% static m.img %}" alt="" loading="lazy" width="800" height="500">
+          <span class="ico" aria-hidden="true">
+            {% if m.icon == 'bars' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V13M11 22V7M17 22v-8M23 22V10"/><path d="M4 25h20"/></svg>{% endif %}
+            {% if m.icon == 'grid' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8.5" height="8.5" rx="2"/><rect x="15.5" y="4" width="8.5" height="8.5" rx="2"/><rect x="4" y="15.5" width="8.5" height="8.5" rx="2"/><path d="M15.5 19.8H24M19.8 15.5V24"/></svg>{% endif %}
+          </span>
+          <span class="n">{{ m.n }}</span>
+        </div>
+        <div class="body">
+          <h3>{{ m.t }}</h3>
+          <p>{{ m.p }}</p>
+          <ul>{% for li in m.li %}<li>{{ li }}</li>{% endfor %}</ul>
+          <span class="go">Open module <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+          <span class="mmeta">{{ m.meta }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="dashboards">
+  <div class="wrap">
+    <div class="sechead rv"><div class="kicker">Dashboards</div><h2 class="title">Four views. One picture.</h2><p class="sub">Each dashboard answers one question, and all of them read from the same numbers.</p></div>
+    <div class="dcards">
+      {% for d in dashboards %}
+      <a class="dcard rv" style="--c:{{ d.c }};--d:{{ forloop.counter0 }}00ms" href="{% url 'dashboards' %}#{{ d.k }}">
+        <div class="pic">
+          <img src="{% static d.img %}" alt="" loading="lazy" width="800" height="500">
+          <span class="ico" aria-hidden="true">
+            {% if d.icon == 'bars' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V13M11 22V7M17 22v-8M23 22V10"/><path d="M4 25h20"/></svg>{% endif %}
+            {% if d.icon == 'team' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="10" r="3.4"/><circle cx="20" cy="11" r="2.8"/><path d="M3 22c.5-3.6 3-5.6 6-5.6s5.5 2 6 5.6M17 17.6c.9-.5 1.8-.7 2.8-.7 2.5 0 4.5 1.6 5 4.6"/></svg>{% endif %}
+            {% if d.icon == 'signal' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24V13"/><circle cx="14" cy="11" r="2.4"/><path d="M8.6 16.4a7.6 7.6 0 0 1 0-10.8M19.4 5.6a7.6 7.6 0 0 1 0 10.8M5 19.2a12.6 12.6 0 0 1 0-16.4M23 2.8a12.6 12.6 0 0 1 0 16.4" opacity=".85"/></svg>{% endif %}
+            {% if d.icon == 'card' %}<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="20" height="18" rx="3"/><path d="M4 11h20M10 11v12"/></svg>{% endif %}
+          </span>
+          <span class="n">{{ d.n }}</span>
+        </div>
+        <div class="body">
+          <h3>{{ d.t }}</h3>
+          <p>{{ d.p }}</p>
+          <ul>{% for li in d.li|slice:":3" %}<li>{{ li }}</li>{% endfor %}</ul>
+          <span class="go">Open <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="insights">
+  <div class="wrap">
+    <div class="sechead rv"><div class="kicker">Insights</div><h2 class="title">What the data says.</h2><p class="sub">Six findings from {{ period }}, computed from the source files.</p></div>
+    <div class="insights">
+      {% for i in insights %}
+      <article class="ins rv" style="--c:{{ i.c }};--d:{{ forloop.counter0 }}00ms"><span class="tag">{{ i.tag }}</span>
+        <div class="num" data-count>{{ i.num }}{% if i.u %}<small>{{ i.u }}</small>{% endif %}</div>
+        <h3>{{ i.t }}</h3><p>{{ i.p }}</p></article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="wrap">
+    <div class="sechead rv"><div class="kicker">How it works</div><h2 class="title">From source files to decisions.</h2></div>
+    <div class="steps">
+      <div class="step rv"><span class="ico" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v13M8.5 12 14 17.5 19.5 12M5 21h18"/></svg></span><h3>Load the sources</h3><p>Complaints, OFC break logs for 2025 and 2026, and site availability with load shedding are loaded into one database.</p></div>
+      <div class="step rv" style="--d:100ms"><span class="ico" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22 11 14l5 4 7-11"/><circle cx="11" cy="14" r="1.6"/><circle cx="16" cy="18" r="1.6"/><circle cx="23" cy="7" r="1.6"/></svg></span><h3>Compute one snapshot</h3><p>Monthly totals, correlations, site buckets and restoration times are calculated once, so every number on the site agrees.</p></div>
+      <div class="step rv" style="--d:200ms"><span class="ico" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="20" height="18" rx="3"/><path d="M4 11h20M10 11v12"/></svg></span><h3>Explore and act</h3><p>Four dashboards and an executive scorecard show where complaints come from and which teams, cities and sites need attention.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="data">
+  <div class="wrap">
+    <div class="sechead rv"><div class="kicker">Data</div><h2 class="title">Built on source files.</h2><p class="sub">Nothing on this site is typed in by hand. Every figure is read from these records.</p></div>
+    <div class="srcs">
+      {% for s in sources %}<div class="src rv" style="--d:{{ forloop.counter0 }}00ms"><div class="rows">{{ s.rows }}</div><h3>{{ s.n }}</h3><p>{{ s.d }}</p></div>{% endfor %}
+    </div>
+    <div class="stamp rv"><i></i>Last updated <b>{{ refreshed|date:"j F Y, H:i" }}</b></div>
+  </div>
+</section>
+
+<section class="block" id="faq">
+  <div class="wrap">
+    <div class="sechead rv"><div class="kicker">Definitions</div><h2 class="title">How the numbers are built.</h2></div>
+    <div class="faq rv">
+      <details open><summary>Where do the complaint numbers come from?</summary><div class="ans">From the consolidated complaints file, tab <code>CPM - NOMC-E2E-REGIONS</code>, counted by month. FOPs team is the Routing Team (C1–C6) and region is the Sub Region.</div></details>
+      <details><summary>What counts as an OFC cut?</summary><div class="ans">Rows flagged OFC in the break logs, counted by the month of their date. A site is "on a cut section" when its id appears in the sections text.</div></details>
+      <details><summary>How are availability and load shedding measured?</summary><div class="ans">As the plain average over sites for each month. Restoration time is the median duration of a fiber break.</div></details>
+      <details><summary>How do I read the correlation (r)?</summary><div class="ans">r is the Pearson correlation of monthly values. Closer to +1 or −1 means the two measures move together more tightly; wording on the dashboards changes at 0.3 and 0.5.</div></details>
+      <details><summary>Which figures compare with 2025?</summary><div class="ans">The OFC break logs and the site availability and load shedding file cover 2025 and 2026, so those figures are compared with the same months of 2025. The complaints data covers 2026 only.</div></details>
+      <details><summary>Why are some sites or cities left out of comparisons?</summary><div class="ans">Site buckets need at least 30 sites per cell and 10 per attribute group. "DG Khan" is merged with "Dera Ghazi Khan" in the city movers table only.</div></details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <div class="box rv">
+      <div><h2>See the full picture.</h2><p>Open the dashboards to compare teams, cities and sites month by month.</p></div>
+      <a class="btn btn-primary" href="{% url 'dashboards' %}">Open dashboards <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg></a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="co">{% if company_logo %}<img src="{% static company_logo %}" alt="Zong">{% else %}<img class="wm-dark" src="{% static 'site/img/zong-wordmark.svg' %}" alt="zong"><img class="wm-light" src="{% static 'site/img/zong-wordmark-light.svg' %}" alt="zong">{% endif %}<span>© {% now "Y" %} Zong · RCTO Central</span></div>
+    <div class="links"><a href="#modules">Modules</a><a href="#dashboards">Dashboards</a><a href="#insights">Insights</a><a href="#faq">Definitions</a>{% include "site/_theme_toggle.html" %}</div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: .15 }) : null;
+  document.querySelectorAll('.rv').forEach(function (el) { io ? io.observe(el) : el.classList.add('in'); });
+  /* count-up on the first text node of every [data-count] element */
+  function run(el) {
+    var n = el.firstChild; if (!n || n.nodeType !== 3) return;
+    var m = n.nodeValue.match(/^([+\u2212-]?)([\d,]*\.?\d+)(.*)$/); if (!m) return;
+    var raw = m[2], dec = (raw.split('.')[1] || '').length, to = parseFloat(raw.replace(/,/g, '')), t0 = null, comma = raw.indexOf(',') > -1;
+    function fmt(v) { var s = v.toFixed(dec); return comma ? Number(s).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : s; }
+    function step(t) { t0 = t0 || t; var p = Math.min((t - t0) / 1100, 1), e = 1 - Math.pow(1 - p, 3); n.nodeValue = m[1] + fmt(to * e) + m[3]; if (p < 1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  }
+  var els = document.querySelectorAll('[data-count]');
+  if (!reduce && io) { var co = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { run(e.target); co.unobserve(e.target); } }); }, { threshold: .6 }); els.forEach(function (el) { co.observe(el); }); }
+})();
+</script>
+</body>
+</html>

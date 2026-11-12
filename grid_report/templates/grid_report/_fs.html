@@ -1,0 +1,65 @@
+<script>
+/* Fullscreen button + "stay fullscreen" when moving between Dashboard and Analysis.
+   A browser leaves fullscreen on every normal page load, so while fullscreen is on, the link opens the other page
+   in a full-size frame inside the page that is already fullscreen. Fullscreen is never dropped, so nothing has to be
+   switched on again. When fullscreen is turned off the visible page becomes the real page. */
+(function(){
+  'use strict';
+  var embedded = false;
+  try { embedded = window.parent !== window && /[?&]embed=1(&|$)/.test(location.search); } catch(e){}
+  var TD = embedded ? window.parent.document : document;
+  var isFs = function(){ return !!(TD.fullscreenElement || TD.webkitFullscreenElement); };
+
+  function toggle(){
+    try {
+      if (isFs()) { (TD.exitFullscreen || TD.webkitExitFullscreen).call(TD); }
+      else { var e = TD.documentElement, p = (e.requestFullscreen || e.webkitRequestFullscreen).call(e); if (p && p.catch) p.catch(function(){}); }
+    } catch(err){}
+  }
+  var btn = document.getElementById('fsBtn');
+  if (btn) btn.addEventListener('click', toggle);
+
+  function embedUrl(u){
+    var a = document.createElement('a'); a.href = u;
+    a.search = (a.search ? a.search + '&' : '?') + 'embed=1';
+    return a.pathname + a.search + a.hash;
+  }
+  var frame = null;
+  function openFrame(url){
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.id = 'fsFrame'; frame.title = 'Page'; frame.setAttribute('allow', 'fullscreen');
+      frame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:0;z-index:2147483000;background:var(--bg,#0A0F1C);color-scheme:normal';
+      document.body.appendChild(frame);
+      document.documentElement.style.overflow = 'hidden';
+    }
+    frame.src = embedUrl(url);
+  }
+  function leave(){
+    var f = frame; frame = null; if (!f) return;
+    var target = null;
+    try { var l = f.contentWindow.location; target = {path: l.pathname, url: l.pathname + l.search.replace(/([?&])embed=1&?/, '$1').replace(/[?&]$/, '') + l.hash}; } catch(e){}
+    f.remove(); document.documentElement.style.overflow = '';
+    if (target && target.path !== location.pathname) location.href = target.url;   /* same page as before: keep it exactly as it was */
+  }
+  if (!embedded) {
+    ['fullscreenchange', 'webkitfullscreenchange'].forEach(function(n){
+      document.addEventListener(n, function(){ if (frame && !isFs()) leave(); });
+    });
+  }
+
+  document.addEventListener('click', function(ev){
+    var a = ev.target.closest && ev.target.closest('a[data-nav]');
+    if (!a || ev.defaultPrevented || ev.button || ev.metaKey || ev.ctrlKey || ev.shiftKey) return;
+    var url = a.getAttribute('href');
+    if (embedded) {
+      ev.preventDefault();
+      if (isFs()) location.href = embedUrl(url); else window.top.location.href = url;
+      return;
+    }
+    if (!isFs()) return;            /* not fullscreen: ordinary page change */
+    ev.preventDefault();
+    openFrame(url);
+  });
+})();
+</script>
